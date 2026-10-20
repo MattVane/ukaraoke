@@ -39,6 +39,7 @@ h2 { font-size: 1.1rem; margin-bottom: 0.8rem; display: flex; align-items: cente
 .input:focus { outline: none; border-color: var(--accent); }
 
 .muted { color: var(--muted); font-size: 0.9rem; }
+.muted.error { color: var(--danger); }
 
 /* Home */
 .home { min-height: 100%; display: grid; place-items: center; padding: 1rem;

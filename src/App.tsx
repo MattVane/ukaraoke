@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Player } from './Player'
 import { setName, useName } from './profile'
+import { formatDuration, searchKaraoke, type SearchResult } from './search'
 import {
   addToQueue, endSession, moveInQueue, playNext, removeFromQueue, startSession, useSession,
   type QueueItem,
@@ -13,14 +14,6 @@ const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: 'stage', label: 'Now playing', icon: '▶' },
   { id: 'search', label: 'Search', icon: '⌕' },
   { id: 'queue', label: 'Queue', icon: '☰' },
-]
-
-// Placeholder results until the search feature lands
-const MOCK_RESULTS = [
-  { videoId: 'dQw4w9WgXcQ', title: 'Never Gonna Give You Up (Karaoke Version)' },
-  { videoId: 'fJ9rUzIMcZQ', title: 'Bohemian Rhapsody (Karaoke Version)' },
-  { videoId: 'hTWKbfoikeg', title: 'Smells Like Teen Spirit (Karaoke Version)' },
-  { videoId: '1w7OgIMMRc4', title: "Sweet Child O' Mine (Karaoke Version)" },
 ]
 
 export default function App() {
@@ -59,8 +52,8 @@ export default function App() {
   if (!name || editingName) {
     return <NamePrompt initial={name} onDone={() => setEditingName(false)} />
   }
-  const add = (r: { videoId: string; title: string }) => {
-    addToQueue({ ...r, thumb: `https://i.ytimg.com/vi/${r.videoId}/mqdefault.jpg`, singer: name })
+  const add = (r: SearchResult) => {
+    addToQueue({ videoId: r.videoId, title: r.title, thumb: r.thumb, singer: name })
     if (!nowPlaying) { playNext(); setResumed(true) }
   }
 
@@ -213,23 +206,54 @@ function QueueRow({ item, first, last }: { item: QueueItem; first: boolean; last
   )
 }
 
-function SearchPanel({ onAdd }: { onAdd: (r: { videoId: string; title: string }) => void }) {
+function SearchPanel({ onAdd }: { onAdd: (r: SearchResult) => void }) {
   const [q, setQ] = useState('')
-  const results = q.trim() ? MOCK_RESULTS : []
+  const [results, setResults] = useState<SearchResult[]>([])
+  const [status, setStatus] = useState<'loading' | 'error' | 'done'>('done')
+  const [added, setAdded] = useState<Set<string>>(new Set())
+
+  useEffect(() => {
+    const query = q.trim()
+    if (query.length < 2) return
+    const ctrl = new AbortController()
+    const timer = window.setTimeout(() => {
+      setStatus('loading')
+      searchKaraoke(query, { signal: ctrl.signal })
+        .then((r) => { setResults(r); setStatus('done') })
+        .catch((e) => { if (!ctrl.signal.aborted) { console.error(e); setStatus('error') } })
+    }, 400)
+    return () => { window.clearTimeout(timer); ctrl.abort() }
+  }, [q])
+
+  const idle = q.trim().length < 2
+  const shown = idle ? [] : results
+
+  const add = (r: SearchResult) => {
+    onAdd(r)
+    setAdded((s) => new Set(s).add(r.videoId))
+    window.setTimeout(() => setAdded((s) => { const n = new Set(s); n.delete(r.videoId); return n }), 2000)
+  }
+
   return (
     <>
       <div className="fields">
         <input className="input" type="search" placeholder="Search karaoke songs…" value={q} onChange={(e) => setQ(e.target.value)} />
       </div>
-      {!q.trim() && <p className="muted">Type a song or artist.</p>}
+      {idle && <p className="muted">Type a song or artist.</p>}
+      {!idle && status === 'loading' && <p className="muted">Searching…</p>}
+      {!idle && status === 'error' && <p className="muted error">Search is unavailable right now. Try again in a moment.</p>}
+      {!idle && status === 'done' && results.length === 0 && <p className="muted">No results.</p>}
       <ul className="list">
-        {results.map((r) => (
+        {shown.map((r) => (
           <li className="row" key={r.videoId}>
-            <img src={`https://i.ytimg.com/vi/${r.videoId}/mqdefault.jpg`} alt="" />
+            <img src={r.thumb} alt="" />
             <div className="row-text">
               <div className="row-title">{r.title}</div>
+              <div className="row-sub">{[r.channel, formatDuration(r.durationSec)].filter(Boolean).join(' · ')}</div>
             </div>
-            <button className="btn primary small" onClick={() => onAdd(r)}>+ Add</button>
+            <button className="btn primary small" disabled={added.has(r.videoId)} onClick={() => add(r)}>
+              {added.has(r.videoId) ? '✓ Added' : '+ Add'}
+            </button>
           </li>
         ))}
       </ul>
