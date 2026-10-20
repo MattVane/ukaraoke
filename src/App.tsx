@@ -127,9 +127,9 @@ export default function App() {
         </button>
         <div className="room">
           <button className="room-main" onClick={() => setSharing(true)} title="Invite others">
+            <span aria-hidden>⧉</span>
             <span className="label">Room</span>
             <strong>{roomCode}</strong>
-            <span aria-hidden>⧉</span>
           </button>
           <button
             className="room-exit"

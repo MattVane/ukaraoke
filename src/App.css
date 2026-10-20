@@ -53,7 +53,7 @@ h2 { font-size: 1.1rem; margin-bottom: 0.8rem; display: flex; align-items: cente
 .app { height: 100%; display: flex; flex-direction: column; }
 .topbar { display: flex; align-items: center; gap: 1rem; padding: 0.7rem 1rem; background: var(--surface); border-bottom: 1px solid #000; }
 .brand { font-weight: 800; font-size: 1.1rem; flex: 1 0 auto; white-space: nowrap; }
-.room { display: flex; align-items: center; gap: 0.3rem; background: var(--elevated); padding: 0.15rem 0.3rem 0.15rem 0.8rem; border-radius: 999px; }
+.room { display: flex; align-items: center; gap: 0.9rem; background: var(--elevated); padding: 0.15rem 0.3rem 0.15rem 0.8rem; border-radius: 999px; }
 .room-main { display: flex; align-items: center; gap: 0.5rem; background: none; border: 0; color: inherit; font: inherit; cursor: pointer; padding: 0.15rem 0; }
 .room-main:hover strong { color: #3be477; }
 .room-exit { background: none; border: 0; color: var(--muted); width: 1.8rem; height: 1.8rem; border-radius: 50%; cursor: pointer; font: inherit; }
