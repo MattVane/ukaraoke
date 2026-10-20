@@ -30,6 +30,7 @@ export default function App() {
   // Autoplay needs a user gesture, so a restored session waits for a click
   const [resumed, setResumed] = useState(false)
   const [sideOpen, setSideOpen] = useState(() => localStorage.getItem('karaoke.sideOpen') !== 'false')
+  const [editingName, setEditingName] = useState(false)
   const toggleSide = () => {
     setSideOpen((o) => {
       localStorage.setItem('karaoke.sideOpen', String(!o))
@@ -55,7 +56,9 @@ export default function App() {
 
   const { nowPlaying, queue, roomCode } = session
 
-  if (!name) return <NamePrompt />
+  if (!name || editingName) {
+    return <NamePrompt initial={name} onDone={() => setEditingName(false)} />
+  }
   const add = (r: { videoId: string; title: string }) => {
     addToQueue({ ...r, thumb: `https://i.ytimg.com/vi/${r.videoId}/mqdefault.jpg`, singer: name })
     if (!nowPlaying) { playNext(); setResumed(true) }
@@ -69,6 +72,14 @@ export default function App() {
           <span className="label">Room</span>
           <strong>{roomCode}</strong>
         </div>
+        <button
+          className="btn icon"
+          onClick={() => setEditingName(true)}
+          aria-label="Change name"
+          title={`Signed in as ${name}. Change name`}
+        >
+          ✎
+        </button>
         <button
           className="btn icon"
           onClick={() => { if (confirm('End this session?')) endSession() }}
@@ -154,8 +165,9 @@ export default function App() {
   )
 }
 
-function NamePrompt() {
-  const [value, setValue] = useState('')
+function NamePrompt({ initial, onDone }: { initial: string; onDone: () => void }) {
+  const [value, setValue] = useState(initial)
+  const editing = initial !== ''
   return (
     <main className="home">
       <form
@@ -163,10 +175,11 @@ function NamePrompt() {
         onSubmit={(e) => {
           e.preventDefault()
           setName(value)
+          onDone()
         }}
       >
         <div className="logo">👋</div>
-        <h1>Who's singing?</h1>
+        <h1>{editing ? 'Change your name' : "Who's singing?"}</h1>
         <p>Your name appears next to the songs you add.</p>
         <input
           className="input"
@@ -177,7 +190,8 @@ function NamePrompt() {
           value={value}
           onChange={(e) => setValue(e.target.value)}
         />
-        <button className="btn primary big" disabled={!value.trim()}>Continue</button>
+        <button className="btn primary big" disabled={!value.trim()}>{editing ? 'Save' : 'Continue'}</button>
+        {editing && <button type="button" className="btn ghost" onClick={onDone}>Cancel</button>}
       </form>
     </main>
   )
