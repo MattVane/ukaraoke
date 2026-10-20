@@ -92,6 +92,14 @@ export default function App() {
     <div className="app" data-tab={tab}>
       <header className="topbar">
         <div className="brand">🎤 <span>Karaoke</span></div>
+        <button
+          className="btn icon"
+          onClick={() => setEditingName(true)}
+          aria-label="Change name"
+          title={`Signed in as ${name}. Change name`}
+        >
+          ✎
+        </button>
         <div className="room">
           <button className="room-main" onClick={() => setSharing(true)} title="Invite others">
             <span className="label">Room</span>
@@ -107,14 +115,6 @@ export default function App() {
             ✕
           </button>
         </div>
-        <button
-          className="btn icon"
-          onClick={() => setEditingName(true)}
-          aria-label="Change name"
-          title={`Signed in as ${name}. Change name`}
-        >
-          ✎
-        </button>
       </header>
 
       {waiting && (
