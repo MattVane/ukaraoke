@@ -103,7 +103,6 @@ export default function App() {
               <div className="empty">
                 <div className="logo">🎶</div>
                 <p>Nothing playing yet</p>
-                <button className="btn primary" onClick={() => setTab('search')}>Find a song</button>
               </div>
             )}
           </div>
