@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Player } from './Player'
+import { setName, useName } from './profile'
 import {
   addToQueue, endSession, moveInQueue, playNext, removeFromQueue, startSession, useSession,
   type QueueItem,
@@ -24,6 +25,7 @@ const MOCK_RESULTS = [
 
 export default function App() {
   const session = useSession()
+  const name = useName()
   const [tab, setTab] = useState<Tab>('stage')
   // Autoplay needs a user gesture, so a restored session waits for a click
   const [resumed, setResumed] = useState(false)
@@ -53,8 +55,9 @@ export default function App() {
 
   const { nowPlaying, queue, roomCode } = session
 
-  const add = (r: { videoId: string; title: string }, singer: string) => {
-    addToQueue({ ...r, thumb: `https://i.ytimg.com/vi/${r.videoId}/mqdefault.jpg`, singer })
+  if (!name) return <NamePrompt />
+  const add = (r: { videoId: string; title: string }) => {
+    addToQueue({ ...r, thumb: `https://i.ytimg.com/vi/${r.videoId}/mqdefault.jpg`, singer: name })
     if (!nowPlaying) { playNext(); setResumed(true) }
   }
 
@@ -151,6 +154,35 @@ export default function App() {
   )
 }
 
+function NamePrompt() {
+  const [value, setValue] = useState('')
+  return (
+    <main className="home">
+      <form
+        className="home-card"
+        onSubmit={(e) => {
+          e.preventDefault()
+          setName(value)
+        }}
+      >
+        <div className="logo">👋</div>
+        <h1>Who's singing?</h1>
+        <p>Your name appears next to the songs you add.</p>
+        <input
+          className="input"
+          autoFocus
+          required
+          maxLength={30}
+          placeholder="Your name"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+        />
+        <button className="btn primary big" disabled={!value.trim()}>Continue</button>
+      </form>
+    </main>
+  )
+}
+
 function QueueRow({ item, first, last }: { item: QueueItem; first: boolean; last: boolean }) {
   return (
     <li className="row">
@@ -168,15 +200,13 @@ function QueueRow({ item, first, last }: { item: QueueItem; first: boolean; last
   )
 }
 
-function SearchPanel({ onAdd }: { onAdd: (r: { videoId: string; title: string }, singer: string) => void }) {
+function SearchPanel({ onAdd }: { onAdd: (r: { videoId: string; title: string }) => void }) {
   const [q, setQ] = useState('')
-  const [singer, setSinger] = useState('')
   const results = q.trim() ? MOCK_RESULTS : []
   return (
     <>
       <div className="fields">
         <input className="input" type="search" placeholder="Search karaoke songs…" value={q} onChange={(e) => setQ(e.target.value)} />
-        <input className="input" placeholder="Your name" value={singer} onChange={(e) => setSinger(e.target.value)} />
       </div>
       {!q.trim() && <p className="muted">Type a song or artist.</p>}
       <ul className="list">
@@ -186,7 +216,7 @@ function SearchPanel({ onAdd }: { onAdd: (r: { videoId: string; title: string },
             <div className="row-text">
               <div className="row-title">{r.title}</div>
             </div>
-            <button className="btn primary small" onClick={() => onAdd(r, singer.trim() || 'Guest')}>+ Add</button>
+            <button className="btn primary small" onClick={() => onAdd(r)}>+ Add</button>
           </li>
         ))}
       </ul>
