@@ -151,6 +151,7 @@ export default function App() {
             </div>
           )}
           {queue[0] && <div className="upnext">Up next: <strong>{queue[0].singer}</strong> – {queue[0].title}</div>}
+          {isHost && <JoinCard roomCode={roomCode} />}
         </section>
 
         <aside className="sidebar">
@@ -246,15 +247,38 @@ function Home({ onStart }: { onStart: () => void }) {
   )
 }
 
-function ShareDialog({ roomCode, onClose }: { roomCode: string; onClose: () => void }) {
-  const url = `${location.origin}${location.pathname}?join=${roomCode}`
+function joinUrl(roomCode: string) {
+  return `${location.origin}${location.pathname}?join=${roomCode}`
+}
+
+function useQr(url: string, width: number) {
   const [qr, setQr] = useState('')
-  const [copied, setCopied] = useState(false)
-
   useEffect(() => {
-    QRCode.toDataURL(url, { margin: 1, width: 240 }).then(setQr, () => setQr(''))
-  }, [url])
+    QRCode.toDataURL(url, { margin: 1, width }).then(setQr, () => setQr(''))
+  }, [url, width])
+  return qr
+}
 
+// Always-on invite shown under the player so nobody has to open a dialog mid-song
+function JoinCard({ roomCode }: { roomCode: string }) {
+  const url = joinUrl(roomCode)
+  const qr = useQr(url, 160)
+  return (
+    <div className="joincard">
+      {qr && <img className="qr small" src={qr} alt={`QR code to join room ${roomCode}`} />}
+      <div className="joincard-text">
+        <div className="joincard-title">Join the session</div>
+        <div className="joincard-url">{url.replace(/^https?:\/\//, '')}</div>
+        <div className="joincard-code">Room <strong>{roomCode}</strong></div>
+      </div>
+    </div>
+  )
+}
+
+function ShareDialog({ roomCode, onClose }: { roomCode: string; onClose: () => void }) {
+  const url = joinUrl(roomCode)
+  const qr = useQr(url, 240)
+  const [copied, setCopied] = useState(false)
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(url)
