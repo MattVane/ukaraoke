@@ -60,4 +60,4 @@ export class FakeRoom implements RoomLike {
   }
 }
 
-export const tick = () => new Promise((r) => setTimeout(r, 5))
+export const tick = () => new Promise((r) => setTimeout(r, 25))
