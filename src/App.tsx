@@ -27,6 +27,7 @@ export default function App() {
   const [tab, setTab] = useState<Tab>('stage')
   // Autoplay needs a user gesture, so a restored session waits for a click
   const [resumed, setResumed] = useState(false)
+  const [sideOpen, setSideOpen] = useState(true)
 
   if (!session) {
     return (
@@ -59,10 +60,26 @@ export default function App() {
           <span className="label">Room</span>
           <strong>{roomCode}</strong>
         </div>
-        <button className="btn ghost small" onClick={endSession}>End session</button>
+        <button
+          className="btn icon side-toggle"
+          onClick={() => setSideOpen((o) => !o)}
+          aria-label={sideOpen ? 'Hide side panel' : 'Show side panel'}
+          aria-expanded={sideOpen}
+          title={sideOpen ? 'Hide side panel' : 'Show side panel'}
+        >
+          {sideOpen ? '»' : '«'}
+        </button>
+        <button
+          className="btn icon"
+          onClick={() => { if (confirm('End this session?')) endSession() }}
+          aria-label="End session"
+          title="End session"
+        >
+          ✕
+        </button>
       </header>
 
-      <main className="panels">
+      <main className={`panels${sideOpen ? '' : ' side-collapsed'}`}>
         <section className="panel stage">
           <div className="screen">
             {nowPlaying && resumed ? (

@@ -104,4 +104,10 @@ h2 { font-size: 1.1rem; margin-bottom: 0.8rem; display: flex; align-items: cente
   .tabbar { display: none; }
   .panels { display: grid; grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr); grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); gap: 1rem; }
   .panel.stage { grid-row: 1 / 3; }
+  .panels.side-collapsed { grid-template-columns: minmax(0, 1fr); }
+  .panels.side-collapsed .panel:not(.stage) { display: none; }
+}
+
+@media (max-width: 899px) {
+  .side-toggle { display: none; }
 }
