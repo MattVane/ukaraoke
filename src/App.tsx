@@ -106,18 +106,20 @@ export default function App() {
         </section>
 
         <aside className="sidebar">
-          <button
-            className="btn icon side-toggle"
-            onClick={toggleSide}
-            aria-label={sideOpen ? 'Hide side panel' : 'Show side panel'}
-            aria-expanded={sideOpen}
-            title={sideOpen ? 'Hide side panel' : 'Show side panel'}
-          >
-            {sideOpen ? '»' : '«'}
-          </button>
+          <div className="sidebar-head">
+            <button
+              className="btn icon side-toggle"
+              onClick={toggleSide}
+              aria-label={sideOpen ? 'Hide side panel' : 'Show side panel'}
+              aria-expanded={sideOpen}
+              title={sideOpen ? 'Hide side panel' : 'Show side panel'}
+            >
+              {sideOpen ? '»' : '«'}
+            </button>
+            <h2>Search</h2>
+          </div>
 
           <section className="panel search">
-            <h2>Search</h2>
             <SearchPanel onAdd={add} />
           </section>
 

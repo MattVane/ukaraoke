@@ -99,6 +99,8 @@ h2 { font-size: 1.1rem; margin-bottom: 0.8rem; display: flex; align-items: cente
   .panel { height: 100%; }
   .row img { width: 64px; }
   .side-toggle { display: none; }
+  .sidebar-head { display: none; }
+  .app[data-tab='search'] .sidebar-head { display: block; padding: 0.2rem 0.2rem 0; }
 }
 
 /* Large screen: split view */
@@ -108,6 +110,9 @@ h2 { font-size: 1.1rem; margin-bottom: 0.8rem; display: flex; align-items: cente
   .sidebar { display: flex; flex-direction: column; gap: 1rem; min-height: 0; }
   .sidebar .panel { flex: 1; min-height: 0; }
   .side-toggle { align-self: flex-start; flex: none; }
+  .sidebar-head { display: flex; align-items: center; gap: 0.6rem; flex: none; }
+  .sidebar-head h2 { margin: 0; }
+  .panels.side-collapsed .sidebar-head h2 { display: none; }
   .panels.side-collapsed { grid-template-columns: minmax(0, 1fr) auto; }
   .panels.side-collapsed .sidebar .panel { display: none; }
 }
