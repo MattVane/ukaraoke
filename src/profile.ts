@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react'
+import { uuid } from './id'
 
 export const NAME_KEY = 'karaoke.name'
 export const CLIENT_KEY = 'karaoke.clientId'
@@ -7,7 +8,7 @@ export const CLIENT_KEY = 'karaoke.clientId'
 export function getClientId(): string {
   let id = localStorage.getItem(CLIENT_KEY)
   if (!id) {
-    id = crypto.randomUUID()
+    id = uuid()
     localStorage.setItem(CLIENT_KEY, id)
   }
   return id

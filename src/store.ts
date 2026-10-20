@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react'
+import { uuid } from './id'
 
 export interface QueueItem {
   id: string
@@ -77,7 +78,7 @@ export function endSession() {
 
 export function addToQueue(item: Omit<QueueItem, 'id'>) {
   if (!state) return
-  set({ ...state, queue: [...state.queue, { ...item, id: crypto.randomUUID() }] })
+  set({ ...state, queue: [...state.queue, { ...item, id: uuid() }] })
 }
 
 // Adds a song and starts it straight away when nothing is playing
