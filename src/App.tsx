@@ -137,7 +137,7 @@ export default function App() {
       )}
 
       <main className={`panels${sideOpen ? '' : ' side-collapsed'}`}>
-        <section className="panel stage">
+        <section className={`panel stage${isHost ? ' host' : ''}`}>
           <div className="screen">
             {isHost && session.nowPlaying && resumed ? (
               <Player item={session.nowPlaying.item} startSeconds={session.nowPlaying.positionSec} />
