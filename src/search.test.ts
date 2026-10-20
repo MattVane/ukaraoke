@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { buildQuery, filterEmbeddable, formatDuration, parseResults, searchKaraoke } from './search'
+import { buildQuery, formatDuration, parseResults, searchKaraoke } from './search'
 
 const item = (id: string, extra = {}) => ({
   url: `/watch?v=${id}`, type: 'stream', title: `T ${id}`, uploaderName: 'Sing King', duration: 375, ...extra,
@@ -37,45 +37,37 @@ describe('buildQuery', () => {
 describe('searchKaraoke', () => {
   it('falls back to the next instance on failure', async () => {
     const f = vi.fn().mockResolvedValueOnce(bad(502)).mockRejectedValueOnce(new Error('net')).mockResolvedValueOnce(ok([item('9Lxm0iSnKNc')]))
-    const r = await searchKaraoke('queen', { instances: ['https://a', 'https://b', 'https://c'], fetchFn: f, embeddableOnly: false })
+    const r = await searchKaraoke('queen', { instances: ['https://a', 'https://b', 'https://c'], fetchFn: f })
     expect(r).toHaveLength(1)
     expect(f).toHaveBeenCalledTimes(3)
     expect(f.mock.calls[0][0]).toBe('https://a/search?q=queen%20karaoke&filter=videos')
   })
 
+  it('tries the last working instance first next time', async () => {
+    const calls: string[] = []
+    const f = vi.fn(async (url: string) => {
+      calls.push(url)
+      return url.startsWith('https://y') ? { ok: true, json: async () => ({ items: [] }) } : { ok: false, status: 500 }
+    })
+    const opts = { instances: ['https://x', 'https://y'], fetchFn: f as unknown as typeof fetch }
+    await searchKaraoke('one', opts)
+    calls.length = 0
+    await searchKaraoke('two', opts)
+    expect(calls).toHaveLength(1)
+    expect(calls[0]).toContain('https://y')
+  })
+
   it('throws when every instance fails', async () => {
     const f = vi.fn().mockResolvedValue(bad(500))
-    await expect(searchKaraoke('x', { instances: ['https://a', 'https://b'], fetchFn: f, embeddableOnly: false })).rejects.toThrow('500')
+    await expect(searchKaraoke('x', { instances: ['https://a', 'https://b'], fetchFn: f })).rejects.toThrow('500')
   })
 
   it('stops when aborted', async () => {
     const ctrl = new AbortController()
     ctrl.abort()
     const f = vi.fn()
-    await expect(searchKaraoke('x', { instances: ['https://a'], fetchFn: f, signal: ctrl.signal, embeddableOnly: false })).rejects.toThrow()
+    await expect(searchKaraoke('x', { instances: ['https://a'], fetchFn: f, signal: ctrl.signal })).rejects.toThrow()
     expect(f).not.toHaveBeenCalled()
-  })
-})
-
-describe('filterEmbeddable', () => {
-  const r = (id: string) => ({ videoId: id, title: id, thumb: '', channel: '', durationSec: 1 })
-
-  it('drops videos that block embedding and keeps the rest', async () => {
-    const f = vi.fn(async (url: string) => {
-      if (url.includes('blocked')) return bad(401)
-      if (url.includes('flaky')) throw new Error('net')
-      return ok([])
-    })
-    const out = await filterEmbeddable([r('good'), r('blocked'), r('flaky')], f as unknown as typeof fetch)
-    expect(out.map((x) => x.videoId)).toEqual(['good', 'flaky'])
-  })
-
-  it('is applied by searchKaraoke by default', async () => {
-    const f = vi.fn(async (url: string) =>
-      url.includes('oembed') ? (url.includes('xyF04rAhHaQ') ? bad(401) : ok([])) : ok([item('9Lxm0iSnKNc'), item('xyF04rAhHaQ')]),
-    )
-    const out = await searchKaraoke('queen', { instances: ['https://a'], fetchFn: f as unknown as typeof fetch })
-    expect(out.map((x) => x.videoId)).toEqual(['9Lxm0iSnKNc'])
   })
 })
 

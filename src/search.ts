@@ -14,6 +14,7 @@ export const DEFAULT_INSTANCES = [
 ]
 
 const TIMEOUT_MS = 8000
+let preferred: string | null = null
 
 interface PipedItem {
   url?: string
@@ -45,37 +46,16 @@ export function parseResults(json: unknown): SearchResult[] {
 
 export const buildQuery = (q: string) => (/karaoke/i.test(q) ? q.trim() : `${q.trim()} karaoke`)
 
-// YouTube's oEmbed endpoint answers 401/403 for videos whose owner blocked embedding
-export async function filterEmbeddable(
-  results: SearchResult[],
-  fetchFn: typeof fetch = fetch,
-  signal?: AbortSignal,
-): Promise<SearchResult[]> {
-  const checks = await Promise.all(
-    results.map(async (r) => {
-      try {
-        const res = await fetchFn(
-          `https://www.youtube.com/oembed?format=json&url=${encodeURIComponent(`https://www.youtube.com/watch?v=${r.videoId}`)}`,
-          { signal },
-        )
-        return ![401, 403, 404].includes(res.status)
-      } catch {
-        // Keep the result if the check itself fails; the player skips it later
-        return true
-      }
-    }),
-  )
-  return results.filter((_, i) => checks[i])
-}
-
 export async function searchKaraoke(
   query: string,
-  opts: { instances?: string[]; fetchFn?: typeof fetch; signal?: AbortSignal; embeddableOnly?: boolean } = {},
+  opts: { instances?: string[]; fetchFn?: typeof fetch; signal?: AbortSignal } = {},
 ): Promise<SearchResult[]> {
-  const { instances = DEFAULT_INSTANCES, fetchFn = fetch, signal, embeddableOnly = true } = opts
+  const { instances = DEFAULT_INSTANCES, fetchFn = fetch, signal } = opts
   const q = encodeURIComponent(buildQuery(query))
   let lastError: unknown = new Error('No search instances configured')
-  for (const base of instances) {
+  // Try the instance that worked last first; public instances are often down
+  const ordered = preferred && instances.includes(preferred) ? [preferred, ...instances.filter((i) => i !== preferred)] : instances
+  for (const base of ordered) {
     if (signal?.aborted) throw new DOMException('Aborted', 'AbortError')
     try {
       const timeout = AbortSignal.timeout(TIMEOUT_MS)
@@ -84,7 +64,8 @@ export async function searchKaraoke(
       })
       if (!res.ok) throw new Error(`${base} responded ${res.status}`)
       const results = parseResults(await res.json())
-      return embeddableOnly ? await filterEmbeddable(results, fetchFn, signal) : results
+      preferred = base
+      return results
     } catch (e) {
       if (signal?.aborted) throw e
       lastError = e

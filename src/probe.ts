@@ -4,7 +4,22 @@ import { getBlocked, isPermanent, markBlocked } from './unplayable'
 
 const SETTLE_MS = 1200
 const TIMEOUT_MS = 8000
+const MAX_CONCURRENT = 2
 const cache = new Map<string, Promise<boolean>>()
+
+// Hidden players are heavy, so only a couple run at once and the rest wait their turn
+let active = 0
+const waiting: (() => void)[] = []
+async function slot<T>(fn: () => Promise<T>): Promise<T> {
+  if (active >= MAX_CONCURRENT) await new Promise<void>((r) => waiting.push(r))
+  active++
+  try {
+    return await fn()
+  } finally {
+    active--
+    waiting.shift()?.()
+  }
+}
 
 // Loads the video in a hidden player to see whether YouTube allows embedding it.
 // Resolves true when playable (or when we can't tell), false when permanently blocked.
@@ -12,7 +27,7 @@ export function probeEmbeddable(videoId: string): Promise<boolean> {
   if (getBlocked().includes(videoId)) return Promise.resolve(false)
   let p = cache.get(videoId)
   if (!p) {
-    p = run(videoId).then((ok) => {
+    p = slot(() => run(videoId)).then((ok) => {
       if (!ok) markBlocked(videoId)
       return ok
     })
