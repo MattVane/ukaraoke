@@ -74,6 +74,8 @@ export function connectGuest(
     const v = parseView(raw)
     // Only accept views a peer sends about itself as host, for the room we joined
     if (!v || v.hostId !== peerId || v.roomCode !== roomCode) return
+    // Stick with the first host we saw until it leaves, so a later peer can't take over the view
+    if (hostPeer && hostPeer !== peerId) return
     hostPeer = peerId
     handlers.onView(v)
   }

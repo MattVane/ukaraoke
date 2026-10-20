@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { NAME_KEY, getName, setName } from './profile'
+import { NAME_KEY, SECRET_KEY, deriveClientId, getName, getSecret, setName } from './profile'
 
 const mem = new Map<string, string>()
 Object.assign(globalThis, {
@@ -28,5 +28,17 @@ describe('profile', () => {
     setName('Ann')
     setName('   ')
     expect(getName()).toBe('Ann')
+  })
+
+  it('keeps one private secret per device and derives a different public ID', async () => {
+    const s = getSecret()
+    expect(s.length).toBeGreaterThanOrEqual(32)
+    expect(getSecret()).toBe(s)
+    expect(mem.get(SECRET_KEY)).toBe(s)
+    const id = await deriveClientId(s)
+    expect(id).toMatch(/^[0-9a-f]{32}$/)
+    expect(id).not.toContain(s.slice(0, 8))
+    expect(await deriveClientId(s)).toBe(id)
+    expect(await deriveClientId(s + 'x')).not.toBe(id)
   })
 })

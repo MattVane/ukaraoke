@@ -5,6 +5,8 @@ import { Hub, installLocalStorage, tick } from './test-utils'
 
 const mem = installLocalStorage()
 const VID = 'dQw4w9WgXcQ'
+const S1 = 'g1'.repeat(16)
+const S2 = 'g2'.repeat(16)
 
 // Fresh copies of the singleton stores, like a page load
 async function load() {
@@ -53,23 +55,23 @@ describe('P2P session integration', () => {
     guest.joinSession(code, joinAs(hub, 'g1'))
     await tick()
 
-    guest.sendCommand({ t: 'add', clientId: 'g1', videoId: VID, title: 'Guest song', singer: 'Gus' })
+    guest.sendCommand({ t: 'add', secret: S1, videoId: VID, title: 'Guest song', singer: 'Gus' })
     await tick()
     expect(titles(store.getState())).toEqual(['Host song', 'Guest song'])
     expect(store.getState()!.queue[1].singer).toBe('Gus')
     expect(titles(guest.getGuest()!.view)).toEqual(['Host song', 'Guest song'])
 
     const [hostSong, own] = store.getState()!.queue
-    guest.sendCommand({ t: 'remove', clientId: 'g1', id: hostSong.id })
-    guest.sendCommand({ t: 'move', clientId: 'g1', id: hostSong.id, delta: 1 })
+    guest.sendCommand({ t: 'remove', secret: S1, id: hostSong.id })
+    guest.sendCommand({ t: 'move', secret: S1, id: hostSong.id, delta: 1 })
     await tick()
     expect(titles(store.getState())).toEqual(['Host song', 'Guest song'])
 
-    guest.sendCommand({ t: 'move', clientId: 'g1', id: own.id, delta: -1 })
+    guest.sendCommand({ t: 'move', secret: S1, id: own.id, delta: -1 })
     await tick()
     expect(titles(store.getState())).toEqual(['Guest song', 'Host song'])
 
-    guest.sendCommand({ t: 'remove', clientId: 'g1', id: own.id })
+    guest.sendCommand({ t: 'remove', secret: S1, id: own.id })
     await tick()
     expect(titles(store.getState())).toEqual(['Host song'])
     expect(titles(guest.getGuest()!.view)).toEqual(['Host song'])
@@ -88,15 +90,55 @@ describe('P2P session integration', () => {
     const link2 = net.connectGuest(code, { onView: (v) => (second = v), onHostLeft: () => {} }, joinAs(hub, 'g2'))
     await tick()
 
-    guest.sendCommand({ t: 'add', clientId: 'g1', videoId: VID, title: 'One', singer: 'A' })
+    guest.sendCommand({ t: 'add', secret: S1, videoId: VID, title: 'One', singer: 'A' })
     await tick()
     const id = store.getState()!.queue[0].id
-    link2.send({ t: 'remove', clientId: 'g2', id })
+    link2.send({ t: 'remove', secret: S2, id })
     await tick()
 
     expect(titles(store.getState())).toEqual(['One'])
     expect(titles(guest.getGuest()!.view)).toEqual(['One'])
     expect(titles(second)).toEqual(['One'])
+  })
+
+  it('never exposes a guest secret; ownership uses an ID derived from it', async () => {
+    const { store, host, guest } = await load()
+    const { deriveClientId } = await import('./profile')
+    store.startSession()
+    const code = store.getState()!.roomCode
+    store.enqueue({ videoId: VID, title: 'Playing', singer: 'Host', addedBy: 'h' })
+    const hub = new Hub()
+    host.startHostLink(code, joinAs(hub, 'host'))
+    guest.joinSession(code, joinAs(hub, 'g1'))
+    await tick()
+
+    guest.sendCommand({ t: 'add', secret: S1, videoId: VID, title: 'Mine', singer: 'Gus' })
+    await tick()
+    const mine = store.getState()!.queue[0]
+    expect(mine.addedBy).toBe(await deriveClientId(S1))
+    expect(JSON.stringify(guest.getGuest()!.view)).not.toContain(S1)
+    expect(mine.addedBy).not.toBe(S1)
+  })
+
+  it('guests keep the first host and ignore a later peer claiming to be host', async () => {
+    const { store, host, guest, net } = await load()
+    store.startSession()
+    const code = store.getState()!.roomCode
+    store.enqueue({ videoId: VID, title: 'Real', singer: 'H', addedBy: 'h' })
+    const hub = new Hub()
+    host.startHostLink(code, joinAs(hub, 'host'))
+    guest.joinSession(code, joinAs(hub, 'g1'))
+    await tick()
+
+    const evil = net.connectHost(code, { getView: () => null, onCommand: () => {} }, joinAs(hub, 'evil'))
+    evil.broadcast({
+      hostId: 'evil',
+      roomCode: code,
+      queue: [],
+      nowPlaying: { id: 'x', videoId: VID, title: 'Fake', singer: 'Evil', thumb: '' },
+    })
+    await tick()
+    expect(guest.getGuest()!.view!.nowPlaying?.title).toBe('Real')
   })
 
   it('host skip is reflected on guests', async () => {
@@ -158,12 +200,12 @@ describe('P2P session integration', () => {
     stop()
     await tick()
     expect(guest.getGuest()!.status).toBe('waiting')
-    expect(guest.sendCommand({ t: 'add', clientId: 'g1', videoId: VID, title: 'x', singer: 'y' })).toBe(false)
+    expect(guest.sendCommand({ t: 'add', secret: S1, videoId: VID, title: 'x', singer: 'y' })).toBe(false)
 
     host.startHostLink(code, joinAs(hub, 'host-2'))
     await tick()
     expect(guest.getGuest()!.status).toBe('live')
-    expect(guest.sendCommand({ t: 'add', clientId: 'g1', videoId: VID, title: 'Back', singer: 'y' })).toBe(true)
+    expect(guest.sendCommand({ t: 'add', secret: S1, videoId: VID, title: 'Back', singer: 'y' })).toBe(true)
     await tick()
     expect(titles(store.getState())).toEqual(['Queued', 'Back'])
   })

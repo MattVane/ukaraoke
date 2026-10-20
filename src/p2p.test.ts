@@ -4,6 +4,7 @@ import { Hub, installLocalStorage, tick } from './test-utils'
 
 const mem = installLocalStorage()
 const VID = 'dQw4w9WgXcQ'
+const S1 = 'g1'.repeat(16)
 
 describe('host + guest over a fake room', () => {
   beforeEach(() => mem.clear())
@@ -29,26 +30,26 @@ describe('host + guest over a fake room', () => {
     expect(getGuest()!.view!.nowPlaying?.title).toBe('Host song')
     expect(getGuest()!.view!.queue).toHaveLength(1)
 
-    sendCommand({ t: 'add', clientId: 'g1', videoId: VID, title: 'Guest song', singer: 'Gus' })
+    sendCommand({ t: 'add', secret: S1, videoId: VID, title: 'Guest song', singer: 'Gus' })
     await tick()
     expect(getState()!.queue.map((q) => q.title)).toEqual(['Host song 2', 'Guest song'])
     expect(getGuest()!.view!.queue).toHaveLength(2)
 
     const own = getState()!.queue[1].id
     const hosts = getState()!.queue[0].id
-    sendCommand({ t: 'remove', clientId: 'g1', id: hosts })
-    sendCommand({ t: 'move', clientId: 'g1', id: own, delta: -1 })
+    sendCommand({ t: 'remove', secret: S1, id: hosts })
+    sendCommand({ t: 'move', secret: S1, id: own, delta: -1 })
     await tick()
     expect(getState()!.queue.map((q) => q.title)).toEqual(['Guest song', 'Host song 2'])
 
-    sendCommand({ t: 'remove', clientId: 'g1', id: own })
+    sendCommand({ t: 'remove', secret: S1, id: own })
     await tick()
     expect(getState()!.queue.map((q) => q.title)).toEqual(['Host song 2'])
 
     stopHost()
     await tick()
     expect(getGuest()!.status).toBe('waiting')
-    expect(sendCommand({ t: 'add', clientId: 'g1', videoId: VID, title: 'x', singer: 'y' })).toBe(false)
+    expect(sendCommand({ t: 'add', secret: S1, videoId: VID, title: 'x', singer: 'y' })).toBe(false)
 
     leaveSession()
     expect(getGuest()).toBeNull()

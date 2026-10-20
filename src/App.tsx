@@ -6,7 +6,7 @@ import { useHostLock } from './lock'
 import { dismissNotice, useBlocked, useNotice } from './unplayable'
 import { probeEmbeddable } from './probe'
 import { Player } from './Player'
-import { getClientId, setName, useName } from './profile'
+import { getClientId, getSecret, setName, useName } from './profile'
 import { thumbFor } from './protocol'
 import { formatDuration, searchKaraoke, type SearchResult } from './search'
 import {
@@ -76,6 +76,7 @@ export default function App() {
   }
 
   const isHost = !!session
+  const secret = getSecret()
   const clientId = getClientId()
   const roomCode = session?.roomCode ?? guest!.roomCode
   const queue = isHost ? session.queue : (guest!.view?.queue ?? [])
@@ -87,13 +88,13 @@ export default function App() {
       enqueue({ videoId: r.videoId, title: r.title, thumb: r.thumb, singer: name, addedBy: clientId })
       setResumed(true)
     } else {
-      sendCommand({ t: 'add', clientId, videoId: r.videoId, title: r.title, singer: name })
+      sendCommand({ t: 'add', secret, videoId: r.videoId, title: r.title, singer: name })
     }
   }
   const canManage = (q: QueueItem) => isHost || q.addedBy === clientId
   const move = (id: string, delta: -1 | 1) =>
-    isHost ? moveInQueue(id, delta) : sendCommand({ t: 'move', clientId, id, delta })
-  const remove = (id: string) => (isHost ? removeFromQueue(id) : sendCommand({ t: 'remove', clientId, id }))
+    isHost ? moveInQueue(id, delta) : sendCommand({ t: 'move', secret, id, delta })
+  const remove = (id: string) => (isHost ? removeFromQueue(id) : sendCommand({ t: 'remove', secret, id }))
   const exit = () => {
     if (!confirm(isHost ? 'End this session?' : 'Leave this session?')) return
     if (isHost) endSession()

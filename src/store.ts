@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react'
 import { uuid } from './id'
+import { parseItem } from './protocol'
 
 export interface QueueItem {
   id: string
@@ -25,18 +26,36 @@ const MAX_AGE_MS = 24 * 60 * 60 * 1000
 let state: SessionState | null = null
 const listeners = new Set<() => void>()
 
+export const ROOM_CODE_LENGTH = 6
+
+// Alphabet size divides 256, so random bytes map to characters without bias
 function newRoomCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-  return Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
+  return Array.from(crypto.getRandomValues(new Uint8Array(ROOM_CODE_LENGTH)), (b) => chars[b % chars.length]).join('')
+}
+
+export function parseSession(raw: unknown): SessionState | null {
+  if (typeof raw !== 'object' || raw === null) return null
+  const s = raw as Record<string, unknown>
+  if (s.v !== 1 || typeof s.roomCode !== 'string' || !/^[A-Z0-9]{4,16}$/.test(s.roomCode)) return null
+  if (typeof s.createdAt !== 'number' || Date.now() - s.createdAt > MAX_AGE_MS) return null
+  if (!Array.isArray(s.queue)) return null
+  const queue = s.queue.map(parseItem)
+  if (queue.some((q) => q === null)) return null
+  let nowPlaying: SessionState['nowPlaying'] = null
+  if (s.nowPlaying != null) {
+    const np = s.nowPlaying as Record<string, unknown>
+    const item = parseItem(np?.item)
+    if (!item) return null
+    nowPlaying = { item, positionSec: typeof np.positionSec === 'number' && np.positionSec >= 0 ? np.positionSec : 0 }
+  }
+  return { v: 1, roomCode: s.roomCode, createdAt: s.createdAt, queue: queue as QueueItem[], nowPlaying }
 }
 
 function load(): SessionState | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return null
-    const parsed = JSON.parse(raw) as SessionState
-    if (parsed.v !== 1 || Date.now() - parsed.createdAt > MAX_AGE_MS) return null
-    return parsed
+    return raw ? parseSession(JSON.parse(raw)) : null
   } catch {
     return null
   }
