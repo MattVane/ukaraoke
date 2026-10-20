@@ -479,7 +479,7 @@ function SearchPanel({ onAdd, disabled }: { onAdd: (r: SearchResult) => void; di
             <div className="row-text">
               <div className="row-title">{r.title}</div>
               <div className="row-sub">
-                {isBlocked ? 'Can’t be played here — embedding disabled' : isChecking ? 'Checking…' : [r.channel, formatDuration(r.durationSec)].filter(Boolean).join(' · ')}
+                {isBlocked ? 'Can’t be embedded' : isChecking ? 'Checking…' : [r.channel, formatDuration(r.durationSec)].filter(Boolean).join(' · ')}
               </div>
             </div>
             <button className="btn primary icon" aria-label={isBlocked ? 'Unavailable' : 'Add'} disabled={disabled || isBlocked || added.has(r.videoId) || pending.has(r.videoId)} onClick={() => void add(r)}>
