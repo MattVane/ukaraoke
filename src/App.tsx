@@ -3,6 +3,7 @@ import QRCode from 'qrcode'
 import { leaveSession, joinSession, sendCommand, useGuest } from './guest'
 import { startHostLink } from './host'
 import { useHostLock } from './lock'
+import { dismissNotice, useBlocked, useNotice } from './unplayable'
 import { Player } from './Player'
 import { getClientId, setName, useName } from './profile'
 import { thumbFor } from './protocol'
@@ -29,6 +30,7 @@ export default function App() {
   const session = useSession()
   const guest = useGuest()
   const name = useName()
+  const skipped = useNotice()
   const [tab, setTab] = useState<Tab>('stage')
   // Autoplay needs a user gesture, so a restored session waits for a click
   const [resumed, setResumed] = useState(false)
@@ -138,6 +140,13 @@ export default function App() {
           </button>
         </div>
       </header>
+
+      {isHost && skipped && (
+        <div className="banner warn" role="status">
+          <span>Skipped “{skipped.title}”: {skipped.reason}.</span>
+          <button className="banner-close" onClick={dismissNotice} aria-label="Dismiss">✕</button>
+        </div>
+      )}
 
       {waiting && (
         <div className="banner">
@@ -426,7 +435,9 @@ function SearchPanel({ onAdd, disabled }: { onAdd: (r: SearchResult) => void; di
   }, [q])
 
   const idle = q.trim().length < 2
-  const shown = idle ? [] : results
+  const blocked = useBlocked()
+  const visible = results.filter((r) => !blocked.includes(r.videoId))
+  const shown = idle ? [] : visible
 
   const add = (r: SearchResult) => {
     onAdd(r)
@@ -442,7 +453,7 @@ function SearchPanel({ onAdd, disabled }: { onAdd: (r: SearchResult) => void; di
       {idle && <p className="muted">Type a song or artist.</p>}
       {!idle && status === 'loading' && <p className="muted">Searching…</p>}
       {!idle && status === 'error' && <p className="muted error">Search is unavailable right now. Try again in a moment.</p>}
-      {!idle && status === 'done' && results.length === 0 && <p className="muted">No results.</p>}
+      {!idle && status === 'done' && visible.length === 0 && <p className="muted">No results.</p>}
       <ul className="list">
         {shown.map((r) => (
           <li className="row" key={r.videoId}>

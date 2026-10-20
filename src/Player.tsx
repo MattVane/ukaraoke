@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { playNext, savePosition, type QueueItem } from './store'
+import { reportUnplayable } from './unplayable'
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 declare global {
@@ -27,6 +28,7 @@ interface Props {
 }
 
 export function Player({ item, startSeconds }: Props) {
+  const { id, videoId, title } = item
   const host = useRef<HTMLDivElement>(null)
   const player = useRef<any>(null)
   const startRef = useRef(startSeconds)
@@ -41,15 +43,18 @@ export function Player({ item, startSeconds }: Props) {
       player.current = new YT.Player(el, {
         width: '100%',
         height: '100%',
-        videoId: item.videoId,
+        videoId,
         playerVars: { autoplay: 1, start: Math.floor(startRef.current), rel: 0 },
         events: {
           onReady: (e: any) => e.target.playVideo(),
           onStateChange: (e: any) => {
             if (e.data === YT.PlayerState.ENDED) playNext()
           },
-          // Embedding disabled or video unavailable: skip it
-          onError: () => playNext(),
+          // Embedding disabled or video unavailable: tell the host, then skip it
+          onError: (e: any) => {
+            reportUnplayable({ videoId, title }, e.data)
+            playNext()
+          },
         },
       })
       timer = window.setInterval(() => {
@@ -63,7 +68,7 @@ export function Player({ item, startSeconds }: Props) {
       player.current?.destroy?.()
       player.current = null
     }
-  }, [item.id, item.videoId])
+  }, [id, videoId, title])
 
   return <div ref={host} className="player" />
 }

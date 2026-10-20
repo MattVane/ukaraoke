@@ -62,6 +62,8 @@ h2 { font-size: 1.1rem; margin-bottom: 0.8rem; display: flex; align-items: cente
 .room strong { letter-spacing: 0.15em; color: var(--accent); }
 
 .banner { background: #3a2f12; color: #f3d37a; text-align: center; padding: 0.5rem 1rem; font-size: 0.9rem; }
+.banner.warn { display: flex; align-items: center; justify-content: center; gap: 0.75rem; }
+.banner-close { background: none; border: 0; color: inherit; cursor: pointer; font: inherit; padding: 0 0.25rem; }
 .or { color: var(--muted); font-size: 0.85rem; margin-top: 0.4rem; }
 .join { display: flex; gap: 0.5rem; }
 .input.code { text-align: center; letter-spacing: 0.2em; text-transform: uppercase; width: 9rem; }
