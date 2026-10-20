@@ -98,7 +98,7 @@ h2 { font-size: 1.1rem; margin-bottom: 0.8rem; display: flex; align-items: cente
   .app[data-tab='queue'] .panel:not(.queue) { display: none; }
   .panel { height: 100%; }
   .row img { width: 64px; }
-  .side-toggle { display: none; }
+  .btn.side-toggle { display: none; }
   .sidebar-head { display: none; }
   .app[data-tab='search'] .sidebar-head { display: block; padding: 0.2rem 0.2rem 0; }
 }
