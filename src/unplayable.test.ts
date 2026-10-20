@@ -51,7 +51,7 @@ describe('unplayable videos', () => {
   })
 
   it('survives corrupt saved data', async () => {
-    mem.set('karaoke.blocked', '{not json')
+    mem.set('ukaraoke.blocked', '{not json')
     expect((await load()).getBlocked()).toEqual([])
   })
 })

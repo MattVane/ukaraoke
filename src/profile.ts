@@ -1,8 +1,8 @@
 import { useSyncExternalStore } from 'react'
 import { uuid } from './id'
 
-export const NAME_KEY = 'karaoke.name'
-export const CLIENT_KEY = 'karaoke.clientId'
+export const NAME_KEY = 'ukaraoke.name'
+export const CLIENT_KEY = 'ukaraoke.clientId'
 
 // Stable per-device ID, used to decide who owns which queue items
 export function getClientId(): string {

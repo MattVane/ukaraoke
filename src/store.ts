@@ -19,7 +19,7 @@ export interface SessionState {
   nowPlaying: { item: QueueItem; positionSec: number } | null
 }
 
-export const STORAGE_KEY = 'karaoke.session'
+export const STORAGE_KEY = 'ukaraoke.session'
 const MAX_AGE_MS = 24 * 60 * 60 * 1000
 
 let state: SessionState | null = null

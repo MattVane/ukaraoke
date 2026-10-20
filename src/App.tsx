@@ -35,12 +35,12 @@ export default function App() {
   const [tab, setTab] = useState<Tab>('stage')
   // Autoplay needs a user gesture, so a restored session waits for a click
   const [resumed, setResumed] = useState(false)
-  const [sideOpen, setSideOpen] = useState(() => localStorage.getItem('karaoke.sideOpen') !== 'false')
+  const [sideOpen, setSideOpen] = useState(() => localStorage.getItem('ukaraoke.sideOpen') !== 'false')
   const [editingName, setEditingName] = useState(false)
   const [sharing, setSharing] = useState(false)
   const toggleSide = () => {
     setSideOpen((o) => {
-      localStorage.setItem('karaoke.sideOpen', String(!o))
+      localStorage.setItem('ukaraoke.sideOpen', String(!o))
       return !o
     })
   }

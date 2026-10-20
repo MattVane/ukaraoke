@@ -10,7 +10,7 @@ export interface GuestState {
   status: GuestStatus
 }
 
-export const GUEST_KEY = 'karaoke.guest'
+export const GUEST_KEY = 'ukaraoke.guest'
 
 let state: GuestState | null = null
 let link: GuestLink | null = null

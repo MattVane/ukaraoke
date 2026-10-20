@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react'
 
-export const BLOCKED_KEY = 'karaoke.blocked'
+export const BLOCKED_KEY = 'ukaraoke.blocked'
 const MAX_BLOCKED = 500
 const NOTICE_MS = 8000
 

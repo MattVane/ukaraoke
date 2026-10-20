@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { hydrate } from './store'
 
-export const HOST_LOCK = 'karaoke-host'
+export const HOST_LOCK = 'ukaraoke-host'
 
 export interface HostLock {
   release(): void

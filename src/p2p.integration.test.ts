@@ -127,7 +127,7 @@ describe('P2P session integration', () => {
     first.host.startHostLink(code, joinAs(hub, 'host'))
     first.guest.joinSession(code, joinAs(hub, 'g1'))
     await tick()
-    expect(mem.get('karaoke.guest')).toContain(code)
+    expect(mem.get('ukaraoke.guest')).toContain(code)
 
     // Reload only the guest side: the old peer vanishes, the host keeps its modules
     hub.peers.get('g1')!.leave()

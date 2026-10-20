@@ -2,7 +2,7 @@ import { joinRoom, selfId } from 'trystero'
 import { parseCommand, parseView, type Command, type ViewState } from './protocol'
 
 // Namespaces our rooms away from other Trystero apps on the same relays
-const APP_ID = 'karaoke-web-4f7c1e'
+const APP_ID = 'ukaraoke-4f7c1e'
 
 interface ActionLike {
   send(data: unknown, opts?: { target?: string }): unknown
