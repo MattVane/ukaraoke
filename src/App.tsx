@@ -4,6 +4,7 @@ import { leaveSession, joinSession, sendCommand, useGuest } from './guest'
 import { startHostLink } from './host'
 import { useHostLock } from './lock'
 import { dismissNotice, useBlocked, useNotice } from './unplayable'
+import { probeEmbeddable } from './probe'
 import { Player } from './Player'
 import { getClientId, setName, useName } from './profile'
 import { thumbFor } from './protocol'
@@ -439,7 +440,13 @@ function SearchPanel({ onAdd, disabled }: { onAdd: (r: SearchResult) => void; di
   const visible = results.filter((r) => !blocked.includes(r.videoId))
   const shown = idle ? [] : visible
 
-  const add = (r: SearchResult) => {
+  const [checking, setChecking] = useState<Set<string>>(new Set())
+
+  const add = async (r: SearchResult) => {
+    setChecking((s) => new Set(s).add(r.videoId))
+    const ok = await probeEmbeddable(r.videoId)
+    setChecking((s) => { const n = new Set(s); n.delete(r.videoId); return n })
+    if (!ok) return
     onAdd(r)
     setAdded((s) => new Set(s).add(r.videoId))
     window.setTimeout(() => setAdded((s) => { const n = new Set(s); n.delete(r.videoId); return n }), 2000)
@@ -456,14 +463,14 @@ function SearchPanel({ onAdd, disabled }: { onAdd: (r: SearchResult) => void; di
       {!idle && status === 'done' && visible.length === 0 && <p className="muted">No results.</p>}
       <ul className="list">
         {shown.map((r) => (
-          <li className="row" key={r.videoId}>
+          <li className="row" key={r.videoId} onPointerEnter={() => void probeEmbeddable(r.videoId)}>
             <img src={r.thumb} alt="" />
             <div className="row-text">
               <div className="row-title">{r.title}</div>
               <div className="row-sub">{[r.channel, formatDuration(r.durationSec)].filter(Boolean).join(' · ')}</div>
             </div>
-            <button className="btn primary small" disabled={disabled || added.has(r.videoId)} onClick={() => add(r)}>
-              {added.has(r.videoId) ? '✓ Added' : '+ Add'}
+            <button className="btn primary small" disabled={disabled || added.has(r.videoId) || checking.has(r.videoId)} onClick={() => void add(r)}>
+              {added.has(r.videoId) ? '✓ Added' : checking.has(r.videoId) ? '…' : '+ Add'}
             </button>
           </li>
         ))}

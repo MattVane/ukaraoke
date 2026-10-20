@@ -32,11 +32,17 @@ function reasonFor(code: number) {
 }
 
 // Called when the player gives up on a video: remember it, tell the host, and let search hide it
+export const isPermanent = (code: number) => PERMANENT.has(code)
+
+export function markBlocked(videoId: string) {
+  if (blocked.includes(videoId)) return
+  blocked = [...blocked, videoId].slice(-MAX_BLOCKED)
+  localStorage.setItem(BLOCKED_KEY, JSON.stringify(blocked))
+  emit()
+}
+
 export function reportUnplayable(item: { videoId: string; title: string }, code: number) {
-  if (PERMANENT.has(code) && !blocked.includes(item.videoId)) {
-    blocked = [...blocked, item.videoId].slice(-MAX_BLOCKED)
-    localStorage.setItem(BLOCKED_KEY, JSON.stringify(blocked))
-  }
+  if (PERMANENT.has(code)) markBlocked(item.videoId)
   notice = { title: item.title, reason: reasonFor(code) }
   clearTimeout(noticeTimer)
   noticeTimer = setTimeout(dismissNotice, NOTICE_MS)
