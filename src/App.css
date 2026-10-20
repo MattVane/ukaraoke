@@ -52,7 +52,7 @@ h2 { font-size: 1.1rem; margin-bottom: 0.8rem; display: flex; align-items: cente
 /* Shell */
 .app { height: 100%; display: flex; flex-direction: column; }
 .topbar { display: flex; align-items: center; gap: 1rem; padding: 0.7rem 1rem; background: var(--surface); border-bottom: 1px solid #000; }
-.brand { font-weight: 800; font-size: 1.1rem; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.brand { font-weight: 800; font-size: 1.1rem; flex: 1 0 auto; white-space: nowrap; }
 .room { display: flex; align-items: center; gap: 0.3rem; background: var(--elevated); padding: 0.15rem 0.3rem 0.15rem 0.8rem; border-radius: 999px; }
 .room-main { display: flex; align-items: center; gap: 0.5rem; background: none; border: 0; color: inherit; font: inherit; cursor: pointer; padding: 0.15rem 0; }
 .room-main:hover strong { color: #3be477; }
@@ -60,6 +60,11 @@ h2 { font-size: 1.1rem; margin-bottom: 0.8rem; display: flex; align-items: cente
 .room-exit:hover { background: var(--hover); color: var(--danger); }
 .room .label { color: var(--muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; }
 .room strong { letter-spacing: 0.15em; color: var(--accent); }
+@media (max-width: 420px) {
+  .topbar { gap: 0.5rem; padding: 0.7rem 0.75rem; }
+  .room .label { display: none; }
+  .room { padding-left: 0.6rem; }
+}
 
 .banner { background: #3a2f12; color: #f3d37a; text-align: center; padding: 0.5rem 1rem; font-size: 0.9rem; }
 .banner.warn { display: flex; align-items: center; justify-content: center; gap: 0.75rem; }
