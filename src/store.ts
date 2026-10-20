@@ -6,6 +6,8 @@ export interface QueueItem {
   title: string
   thumb?: string
   singer: string
+  // Client ID of whoever added it; decides who may remove or reorder it
+  addedBy?: string
 }
 
 export interface SessionState {
@@ -76,6 +78,12 @@ export function endSession() {
 export function addToQueue(item: Omit<QueueItem, 'id'>) {
   if (!state) return
   set({ ...state, queue: [...state.queue, { ...item, id: crypto.randomUUID() }] })
+}
+
+// Adds a song and starts it straight away when nothing is playing
+export function enqueue(item: Omit<QueueItem, 'id'>) {
+  addToQueue(item)
+  if (state && !state.nowPlaying) playNext()
 }
 
 export function removeFromQueue(id: string) {

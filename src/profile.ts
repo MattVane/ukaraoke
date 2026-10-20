@@ -1,6 +1,17 @@
 import { useSyncExternalStore } from 'react'
 
 export const NAME_KEY = 'karaoke.name'
+export const CLIENT_KEY = 'karaoke.clientId'
+
+// Stable per-device ID, used to decide who owns which queue items
+export function getClientId(): string {
+  let id = localStorage.getItem(CLIENT_KEY)
+  if (!id) {
+    id = crypto.randomUUID()
+    localStorage.setItem(CLIENT_KEY, id)
+  }
+  return id
+}
 
 const listeners = new Set<() => void>()
 

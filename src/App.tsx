@@ -1,9 +1,13 @@
 import { useEffect, useState } from 'react'
+import QRCode from 'qrcode'
+import { leaveSession, joinSession, sendCommand, useGuest } from './guest'
+import { startHostLink } from './host'
 import { Player } from './Player'
-import { setName, useName } from './profile'
+import { getClientId, setName, useName } from './profile'
+import { thumbFor } from './protocol'
 import { formatDuration, searchKaraoke, type SearchResult } from './search'
 import {
-  addToQueue, endSession, moveInQueue, playNext, removeFromQueue, startSession, useSession,
+  endSession, enqueue, getState, moveInQueue, playNext, removeFromQueue, startSession, useSession,
   type QueueItem,
 } from './store'
 import './App.css'
@@ -16,14 +20,20 @@ const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: 'queue', label: 'Queue', icon: '☰' },
 ]
 
+function joinCodeFromUrl() {
+  return new URLSearchParams(location.search).get('join')
+}
+
 export default function App() {
   const session = useSession()
+  const guest = useGuest()
   const name = useName()
   const [tab, setTab] = useState<Tab>('stage')
   // Autoplay needs a user gesture, so a restored session waits for a click
   const [resumed, setResumed] = useState(false)
   const [sideOpen, setSideOpen] = useState(() => localStorage.getItem('karaoke.sideOpen') !== 'false')
   const [editingName, setEditingName] = useState(false)
+  const [sharing, setSharing] = useState(false)
   const toggleSide = () => {
     setSideOpen((o) => {
       localStorage.setItem('karaoke.sideOpen', String(!o))
@@ -31,39 +41,71 @@ export default function App() {
     })
   }
 
-  if (!session) {
-    return (
-      <main className="home">
-        <div className="home-card">
-          <div className="logo">🎤</div>
-          <h1>Karaoke</h1>
-          <p>Queue up videos from YouTube and sing along with friends.</p>
-          <button className="btn primary big" onClick={() => { startSession(); setResumed(true) }}>
-            Start new session
-          </button>
-          <button className="btn ghost" disabled>Join a session</button>
-        </div>
-      </main>
-    )
-  }
+  const hostRoom = session?.roomCode
+  useEffect(() => {
+    if (!hostRoom) return
+    return startHostLink(hostRoom)
+  }, [hostRoom])
 
-  const { nowPlaying, queue, roomCode } = session
+  // Opening a shared link (?join=CODE) joins that room
+  useEffect(() => {
+    const code = joinCodeFromUrl()
+    if (!code) return
+    history.replaceState(null, '', location.pathname)
+    if (!getHostSession()) joinSession(code)
+  }, [])
+
+  if (!session && !guest) {
+    return <Home onStart={() => { startSession(); setResumed(true) }} />
+  }
 
   if (!name || editingName) {
     return <NamePrompt initial={name} onDone={() => setEditingName(false)} />
   }
+
+  const isHost = !!session
+  const clientId = getClientId()
+  const roomCode = session?.roomCode ?? guest!.roomCode
+  const queue = isHost ? session.queue : (guest!.view?.queue ?? [])
+  const nowPlaying = isHost ? (session.nowPlaying?.item ?? null) : (guest!.view?.nowPlaying ?? null)
+  const waiting = !isHost && guest!.status !== 'live'
+
   const add = (r: SearchResult) => {
-    addToQueue({ videoId: r.videoId, title: r.title, thumb: r.thumb, singer: name })
-    if (!nowPlaying) { playNext(); setResumed(true) }
+    if (isHost) {
+      enqueue({ videoId: r.videoId, title: r.title, thumb: r.thumb, singer: name, addedBy: clientId })
+      setResumed(true)
+    } else {
+      sendCommand({ t: 'add', clientId, videoId: r.videoId, title: r.title, singer: name })
+    }
+  }
+  const canManage = (q: QueueItem) => isHost || q.addedBy === clientId
+  const move = (id: string, delta: -1 | 1) =>
+    isHost ? moveInQueue(id, delta) : sendCommand({ t: 'move', clientId, id, delta })
+  const remove = (id: string) => (isHost ? removeFromQueue(id) : sendCommand({ t: 'remove', clientId, id }))
+  const exit = () => {
+    if (!confirm(isHost ? 'End this session?' : 'Leave this session?')) return
+    if (isHost) endSession()
+    else leaveSession()
   }
 
   return (
     <div className="app" data-tab={tab}>
       <header className="topbar">
         <div className="brand">🎤 <span>Karaoke</span></div>
-        <div className="room" title="Share this code to join">
-          <span className="label">Room</span>
-          <strong>{roomCode}</strong>
+        <div className="room">
+          <button className="room-main" onClick={() => setSharing(true)} title="Invite others">
+            <span className="label">Room</span>
+            <strong>{roomCode}</strong>
+            <span aria-hidden>⧉</span>
+          </button>
+          <button
+            className="room-exit"
+            onClick={exit}
+            aria-label={isHost ? 'End session' : 'Leave session'}
+            title={isHost ? 'End session' : 'Leave session'}
+          >
+            ✕
+          </button>
         </div>
         <button
           className="btn icon"
@@ -73,25 +115,25 @@ export default function App() {
         >
           ✎
         </button>
-        <button
-          className="btn icon"
-          onClick={() => { if (confirm('End this session?')) endSession() }}
-          aria-label="End session"
-          title="End session"
-        >
-          ✕
-        </button>
       </header>
+
+      {waiting && (
+        <div className="banner">
+          {guest!.status === 'connecting' ? `Connecting to room ${roomCode}…` : 'Host disconnected. Waiting for them to come back…'}
+        </div>
+      )}
 
       <main className={`panels${sideOpen ? '' : ' side-collapsed'}`}>
         <section className="panel stage">
           <div className="screen">
-            {nowPlaying && resumed ? (
-              <Player item={nowPlaying.item} startSeconds={nowPlaying.positionSec} />
-            ) : nowPlaying ? (
+            {isHost && session.nowPlaying && resumed ? (
+              <Player item={session.nowPlaying.item} startSeconds={session.nowPlaying.positionSec} />
+            ) : isHost && session.nowPlaying ? (
               <button className="btn primary big" onClick={() => setResumed(true)}>
                 ▶ Resume session
               </button>
+            ) : nowPlaying ? (
+              <img className="np-thumb" src={thumbFor(nowPlaying.videoId)} alt="" />
             ) : (
               <div className="empty">
                 <div className="logo">🎶</div>
@@ -102,10 +144,10 @@ export default function App() {
           {nowPlaying && (
             <div className="np">
               <div className="np-text">
-                <div className="np-title">{nowPlaying.item.title}</div>
-                <div className="np-sub">Singing: {nowPlaying.item.singer}</div>
+                <div className="np-title">{nowPlaying.title}</div>
+                <div className="np-sub">Singing: {nowPlaying.singer}</div>
               </div>
-              <button className="btn icon" onClick={playNext} aria-label="Skip">⏭</button>
+              {isHost && <button className="btn icon" onClick={playNext} aria-label="Skip">⏭</button>}
             </div>
           )}
           {queue[0] && <div className="upnext">Up next: <strong>{queue[0].singer}</strong> – {queue[0].title}</div>}
@@ -126,7 +168,7 @@ export default function App() {
           </div>
 
           <section className="panel search">
-            <SearchPanel onAdd={add} />
+            <SearchPanel onAdd={add} disabled={waiting} />
           </section>
 
           <section className="panel queue">
@@ -136,7 +178,15 @@ export default function App() {
             ) : (
               <ol className="list">
                 {queue.map((q, i) => (
-                  <QueueRow key={q.id} item={q} first={i === 0} last={i === queue.length - 1} />
+                  <QueueRow
+                    key={q.id}
+                    item={q}
+                    first={i === 0}
+                    last={i === queue.length - 1}
+                    manage={canManage(q)}
+                    onMove={(d) => move(q.id, d)}
+                    onRemove={() => remove(q.id)}
+                  />
                 ))}
               </ol>
             )}
@@ -153,6 +203,80 @@ export default function App() {
           </button>
         ))}
       </nav>
+
+      {sharing && <ShareDialog roomCode={roomCode} onClose={() => setSharing(false)} />}
+    </div>
+  )
+}
+
+function getHostSession() {
+  return getState()
+}
+
+function Home({ onStart }: { onStart: () => void }) {
+  const [code, setCode] = useState(joinCodeFromUrl() ?? '')
+  return (
+    <main className="home">
+      <div className="home-card">
+        <div className="logo">🎤</div>
+        <h1>Karaoke</h1>
+        <p>Queue up videos from YouTube and sing along with friends.</p>
+        <button className="btn primary big" onClick={onStart}>Start new session</button>
+        <div className="or">or join one</div>
+        <form
+          className="join"
+          onSubmit={(e) => {
+            e.preventDefault()
+            joinSession(code)
+          }}
+        >
+          <input
+            className="input code"
+            placeholder="Room code"
+            maxLength={8}
+            autoCapitalize="characters"
+            autoComplete="off"
+            value={code}
+            onChange={(e) => setCode(e.target.value.toUpperCase())}
+          />
+          <button className="btn" disabled={code.trim().length < 3}>Join</button>
+        </form>
+      </div>
+    </main>
+  )
+}
+
+function ShareDialog({ roomCode, onClose }: { roomCode: string; onClose: () => void }) {
+  const url = `${location.origin}${location.pathname}?join=${roomCode}`
+  const [qr, setQr] = useState('')
+  const [copied, setCopied] = useState(false)
+
+  useEffect(() => {
+    QRCode.toDataURL(url, { margin: 1, width: 240 }).then(setQr, () => setQr(''))
+  }, [url])
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(url)
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 1500)
+    } catch {
+      // Clipboard needs a secure context; the link is shown for manual copying
+    }
+  }
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal" role="dialog" aria-label="Invite others" onClick={(e) => e.stopPropagation()}>
+        <h2>Join this session</h2>
+        {qr && <img className="qr" src={qr} alt={`QR code to join room ${roomCode}`} />}
+        <div className="code-big">{roomCode}</div>
+        <p className="muted url">{url}</p>
+        <div className="modal-actions">
+          <button className="btn" onClick={copy}>{copied ? '✓ Copied' : 'Copy link'}</button>
+          <button className="btn primary" onClick={onClose}>Done</button>
+        </div>
+      </div>
     </div>
   )
 }
@@ -189,24 +313,33 @@ function NamePrompt({ initial, onDone }: { initial: string; onDone: () => void }
   )
 }
 
-function QueueRow({ item, first, last }: { item: QueueItem; first: boolean; last: boolean }) {
+function QueueRow({ item, first, last, manage, onMove, onRemove }: {
+  item: QueueItem
+  first: boolean
+  last: boolean
+  manage: boolean
+  onMove: (delta: -1 | 1) => void
+  onRemove: () => void
+}) {
   return (
     <li className="row">
-      <img src={item.thumb ?? `https://i.ytimg.com/vi/${item.videoId}/mqdefault.jpg`} alt="" />
+      <img src={item.thumb ?? thumbFor(item.videoId)} alt="" />
       <div className="row-text">
         <div className="row-title">{item.title}</div>
         <div className="row-sub">{item.singer}</div>
       </div>
-      <div className="row-actions">
-        <button className="btn icon" disabled={first} onClick={() => moveInQueue(item.id, -1)} aria-label="Move up">↑</button>
-        <button className="btn icon" disabled={last} onClick={() => moveInQueue(item.id, 1)} aria-label="Move down">↓</button>
-        <button className="btn icon danger" onClick={() => removeFromQueue(item.id)} aria-label="Remove">✕</button>
-      </div>
+      {manage && (
+        <div className="row-actions">
+          <button className="btn icon" disabled={first} onClick={() => onMove(-1)} aria-label="Move up">↑</button>
+          <button className="btn icon" disabled={last} onClick={() => onMove(1)} aria-label="Move down">↓</button>
+          <button className="btn icon danger" onClick={onRemove} aria-label="Remove">✕</button>
+        </div>
+      )}
     </li>
   )
 }
 
-function SearchPanel({ onAdd }: { onAdd: (r: SearchResult) => void }) {
+function SearchPanel({ onAdd, disabled }: { onAdd: (r: SearchResult) => void; disabled?: boolean }) {
   const [q, setQ] = useState('')
   const [results, setResults] = useState<SearchResult[]>([])
   const [status, setStatus] = useState<'loading' | 'error' | 'done'>('done')
@@ -251,7 +384,7 @@ function SearchPanel({ onAdd }: { onAdd: (r: SearchResult) => void }) {
               <div className="row-title">{r.title}</div>
               <div className="row-sub">{[r.channel, formatDuration(r.durationSec)].filter(Boolean).join(' · ')}</div>
             </div>
-            <button className="btn primary small" disabled={added.has(r.videoId)} onClick={() => add(r)}>
+            <button className="btn primary small" disabled={disabled || added.has(r.videoId)} onClick={() => add(r)}>
               {added.has(r.videoId) ? '✓ Added' : '+ Add'}
             </button>
           </li>
