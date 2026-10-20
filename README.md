@@ -2,7 +2,7 @@
 
 Client-only karaoke. Host a session, search YouTube for karaoke videos, build a shared queue and invite friends to add songs from their own devices. Everything runs in the browser, with peer-to-peer sync and no backend.
 
-**Try it:** https://mattvane.github.io/ukaraoke/
+**TRY IT OUT** https://mattvane.github.io/ukaraoke/
 
 ## Features
 
