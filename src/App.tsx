@@ -67,15 +67,6 @@ export default function App() {
           <strong>{roomCode}</strong>
         </div>
         <button
-          className="btn icon side-toggle"
-          onClick={toggleSide}
-          aria-label={sideOpen ? 'Hide side panel' : 'Show side panel'}
-          aria-expanded={sideOpen}
-          title={sideOpen ? 'Hide side panel' : 'Show side panel'}
-        >
-          {sideOpen ? '»' : '«'}
-        </button>
-        <button
           className="btn icon"
           onClick={() => { if (confirm('End this session?')) endSession() }}
           aria-label="End session"
@@ -114,23 +105,35 @@ export default function App() {
           {queue[0] && <div className="upnext">Up next: <strong>{queue[0].singer}</strong> – {queue[0].title}</div>}
         </section>
 
-        <section className="panel search">
-          <h2>Search</h2>
-          <SearchPanel onAdd={add} />
-        </section>
+        <aside className="sidebar">
+          <button
+            className="btn icon side-toggle"
+            onClick={toggleSide}
+            aria-label={sideOpen ? 'Hide side panel' : 'Show side panel'}
+            aria-expanded={sideOpen}
+            title={sideOpen ? 'Hide side panel' : 'Show side panel'}
+          >
+            {sideOpen ? '»' : '«'}
+          </button>
 
-        <section className="panel queue">
-          <h2>Queue <span className="count">{queue.length}</span></h2>
-          {queue.length === 0 ? (
-            <p className="muted">The queue is empty.</p>
-          ) : (
-            <ol className="list">
-              {queue.map((q, i) => (
-                <QueueRow key={q.id} item={q} first={i === 0} last={i === queue.length - 1} />
-              ))}
-            </ol>
-          )}
-        </section>
+          <section className="panel search">
+            <h2>Search</h2>
+            <SearchPanel onAdd={add} />
+          </section>
+
+          <section className="panel queue">
+            <h2>Queue <span className="count">{queue.length}</span></h2>
+            {queue.length === 0 ? (
+              <p className="muted">The queue is empty.</p>
+            ) : (
+              <ol className="list">
+                {queue.map((q, i) => (
+                  <QueueRow key={q.id} item={q} first={i === 0} last={i === queue.length - 1} />
+                ))}
+              </ol>
+            )}
+          </section>
+        </aside>
       </main>
 
       <nav className="tabbar">
