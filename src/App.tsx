@@ -173,7 +173,7 @@ function SearchPanel({ onAdd }: { onAdd: (r: { videoId: string; title: string },
         <input className="input" type="search" placeholder="Search karaoke songs…" value={q} onChange={(e) => setQ(e.target.value)} />
         <input className="input" placeholder="Your name" value={singer} onChange={(e) => setSinger(e.target.value)} />
       </div>
-      {!q.trim() && <p className="muted">Type a song or artist. “karaoke” is added automatically.</p>}
+      {!q.trim() && <p className="muted">Type a song or artist.</p>}
       <ul className="list">
         {results.map((r) => (
           <li className="row" key={r.videoId}>
