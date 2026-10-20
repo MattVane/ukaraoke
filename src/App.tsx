@@ -88,6 +88,19 @@ export default function App() {
     else leaveSession()
   }
 
+  const nowPlayingBlock = nowPlaying && (
+    <div className="np">
+      <div className="np-text">
+        <div className="np-title">{nowPlaying.title}</div>
+        <div className="np-sub">Singing: {nowPlaying.singer}</div>
+      </div>
+      {isHost && <button className="btn icon" onClick={playNext} aria-label="Skip">⏭</button>}
+    </div>
+  )
+  const upNextBlock = queue[0] && (
+    <div className="upnext"><span>Up next: <strong>{queue[0].singer}</strong> – {queue[0].title}</span></div>
+  )
+
   return (
     <div className="app" data-tab={tab}>
       <header className="topbar">
@@ -141,17 +154,8 @@ export default function App() {
               </div>
             )}
           </div>
-          {nowPlaying && (
-            <div className="np">
-              <div className="np-text">
-                <div className="np-title">{nowPlaying.title}</div>
-                <div className="np-sub">Singing: {nowPlaying.singer}</div>
-              </div>
-              {isHost && <button className="btn icon" onClick={playNext} aria-label="Skip">⏭</button>}
-            </div>
-          )}
-          {queue[0] && <div className="upnext">Up next: <strong>{queue[0].singer}</strong> – {queue[0].title}</div>}
-          {isHost && <JoinCard roomCode={roomCode} />}
+          {!isHost && nowPlayingBlock}
+          {!isHost && upNextBlock}
         </section>
 
         <aside className="sidebar">
@@ -194,6 +198,14 @@ export default function App() {
           </section>
         </aside>
       </main>
+
+      {isHost && (
+        <footer className="statusbar">
+          <div className="statusbar-np">{nowPlayingBlock}</div>
+          <div className="statusbar-next">{upNextBlock}</div>
+          <JoinCard roomCode={roomCode} />
+        </footer>
+      )}
 
       <nav className="tabbar">
         {TABS.map((t) => (

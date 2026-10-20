@@ -94,6 +94,22 @@ h2 { font-size: 1.1rem; margin-bottom: 0.8rem; display: flex; align-items: cente
 .upnext { margin-top: 1rem; padding: 0.7rem 0.9rem; background: var(--elevated); border-radius: 8px; color: var(--muted); font-size: 0.9rem; }
 .upnext strong { color: var(--text); }
 
+/* Host: now playing, up next and join share one row pinned to the bottom */
+.statusbar { flex: none; display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1.2fr); gap: 1rem; align-items: stretch;
+  padding: 0.75rem 1rem; background: var(--surface); border-top: 1px solid #000; }
+.statusbar > * { min-width: 0; }
+.statusbar .np, .statusbar .upnext, .statusbar .joincard { margin-top: 0; height: 100%; }
+.statusbar .np { padding: 0.5rem 0.2rem; }
+.statusbar .np-title { font-size: 1.05rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.statusbar .upnext { display: flex; align-items: center; }
+.statusbar .joincard { box-sizing: border-box; padding: 0.5rem; }
+.statusbar .qr.small { width: 80px; height: 80px; }
+@media (max-width: 899px) {
+  .statusbar { grid-template-columns: 1fr; gap: 0.5rem; }
+  .app:not([data-tab='stage']) .statusbar { display: none; }
+  .statusbar .joincard, .statusbar .upnext { display: none; }
+}
+
 /* Lists */
 .count { background: var(--elevated); color: var(--muted); font-size: 0.75rem; padding: 0.1rem 0.6rem; border-radius: 999px; }
 .fields { display: grid; gap: 0.5rem; margin-bottom: 0.8rem; }
