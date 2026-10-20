@@ -1,4 +1,8 @@
-# React + TypeScript + Vite
+# UKaraoke
+
+Client-only karaoke queue: host a session, search YouTube, and let friends join and add songs from their own devices (peer-to-peer, no backend).
+
+## Template notes (React + TypeScript + Vite)
 
 This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
 

@@ -116,7 +116,7 @@ export default function App() {
   return (
     <div className="app" data-tab={tab}>
       <header className="topbar">
-        <div className="brand">🎤 <span>Karaoke</span></div>
+        <div className="brand">🎤 <span>UKaraoke</span></div>
         <button
           className="btn icon"
           onClick={() => setEditingName(true)}
@@ -251,7 +251,7 @@ function Home({ onStart }: { onStart: () => void }) {
     <main className="home">
       <div className="home-card">
         <div className="logo">🎤</div>
-        <h1>Karaoke</h1>
+        <h1>UKaraoke</h1>
         <p>Queue up videos from YouTube and sing along with friends.</p>
         <button className="btn primary big" onClick={onStart}>Start new session</button>
         <div className="or">or join one</div>
