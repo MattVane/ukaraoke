@@ -1,18 +1,22 @@
 import { useEffect, useState } from 'react'
-import QRCode from 'qrcode'
 import { leaveSession, joinSession, sendCommand, useGuest } from './guest'
 import { startHostLink } from './host'
+import { Home, HostElsewhere } from './Home'
 import { useHostLock } from './lock'
-import { dismissNotice, useBlocked, useNotice } from './unplayable'
-import { probeEmbeddable } from './probe'
+import { NamePrompt } from './NamePrompt'
+import { dismissNotice, useNotice } from './unplayable'
 import { Player } from './Player'
-import { getClientId, getSecret, setName, useName } from './profile'
+import { getClientId, getSecret, useName } from './profile'
 import { thumbFor } from './protocol'
-import { formatDuration, searchKaraoke, type SearchResult } from './search'
+import { QueueRow } from './QueueRow'
+import { SearchPanel } from './SearchPanel'
+import { JoinCard, ShareDialog } from './Share'
+import type { SearchResult } from './search'
 import {
   endSession, enqueue, getState, moveInQueue, playNext, removeFromQueue, startSession, useSession,
   type QueueItem,
 } from './store'
+import { joinCodeFromUrl } from './url'
 import './App.css'
 
 type Tab = 'stage' | 'search' | 'queue'
@@ -22,10 +26,6 @@ const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: 'search', label: 'Search', icon: '⌕' },
   { id: 'queue', label: 'Queue', icon: '☰' },
 ]
-
-function joinCodeFromUrl() {
-  return new URLSearchParams(location.search).get('join')
-}
 
 export default function App() {
   const session = useSession()
@@ -242,254 +242,8 @@ export default function App() {
   )
 }
 
+
 function getHostSession() {
   return getState()
 }
 
-function Home({ onStart }: { onStart: () => void }) {
-  const [code, setCode] = useState(joinCodeFromUrl() ?? '')
-  return (
-    <main className="home">
-      <div className="home-card">
-        <div className="logo">🎤</div>
-        <h1>UKaraoke</h1>
-        <p>Queue up videos from YouTube and sing along with friends.</p>
-        <button className="btn primary big" onClick={onStart}>Start new session</button>
-        <div className="or">or join one</div>
-        <form
-          className="join"
-          onSubmit={(e) => {
-            e.preventDefault()
-            joinSession(code)
-          }}
-        >
-          <input
-            className="input code"
-            placeholder="Room code"
-            maxLength={8}
-            autoCapitalize="characters"
-            autoComplete="off"
-            value={code}
-            onChange={(e) => setCode(e.target.value.toUpperCase())}
-          />
-          <button className="btn" disabled={code.trim().length < 3}>Join</button>
-        </form>
-      </div>
-    </main>
-  )
-}
-
-function HostElsewhere({ roomCode, onTakeOver }: { roomCode: string; onTakeOver: () => void }) {
-  return (
-    <main className="home">
-      <div className="home-card">
-        <div className="logo">🪟</div>
-        <h1>Room {roomCode}</h1>
-        <p>This session is already open in another tab.</p>
-        <button className="btn primary big" onClick={onTakeOver}>Use this tab instead</button>
-      </div>
-    </main>
-  )
-}
-
-function joinUrl(roomCode: string) {
-  return `${location.origin}${location.pathname}?join=${roomCode}`
-}
-
-function useQr(url: string, width: number) {
-  const [qr, setQr] = useState('')
-  useEffect(() => {
-    QRCode.toDataURL(url, { margin: 1, width }).then(setQr, () => setQr(''))
-  }, [url, width])
-  return qr
-}
-
-function useCopy(text: string) {
-  const [copied, setCopied] = useState(false)
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(text)
-      setCopied(true)
-      window.setTimeout(() => setCopied(false), 1500)
-    } catch {
-      // Clipboard needs a secure context; the link is shown for manual copying
-    }
-  }
-  return { copied, copy }
-}
-
-// Always-on invite shown under the player so nobody has to open a dialog mid-song
-function JoinCard({ roomCode }: { roomCode: string }) {
-  const url = joinUrl(roomCode)
-  const qr = useQr(url, 160)
-  const { copied, copy } = useCopy(url)
-  return (
-    <div className="joincard">
-      {qr && <img className="qr small" src={qr} alt={`QR code to join room ${roomCode}`} />}
-      <div className="joincard-text">
-        <div className="joincard-title">Join the session</div>
-        <div className="joincard-url">{url.replace(/^https?:\/\//, '')}</div>
-        <div className="joincard-code">Room <strong>{roomCode}</strong></div>
-      </div>
-      <button className="btn icon" onClick={copy} aria-label="Copy join link" title="Copy join link">
-        {copied ? '✓' : '⧉'}
-      </button>
-    </div>
-  )
-}
-
-function ShareDialog({ roomCode, onClose }: { roomCode: string; onClose: () => void }) {
-  const url = joinUrl(roomCode)
-  const qr = useQr(url, 240)
-  const { copied, copy } = useCopy(url)
-
-  return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" role="dialog" aria-label="Invite others" onClick={(e) => e.stopPropagation()}>
-        <h2>Join this session</h2>
-        {qr && <img className="qr" src={qr} alt={`QR code to join room ${roomCode}`} />}
-        <div className="code-big">{roomCode}</div>
-        <p className="muted url">{url}</p>
-        <div className="modal-actions">
-          <button className="btn" onClick={copy}>{copied ? '✓ Copied' : 'Copy link'}</button>
-          <button className="btn primary" onClick={onClose}>Done</button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function NamePrompt({ initial, onDone }: { initial: string; onDone: () => void }) {
-  const [value, setValue] = useState(initial)
-  const editing = initial !== ''
-  return (
-    <main className="home">
-      <form
-        className="home-card"
-        onSubmit={(e) => {
-          e.preventDefault()
-          setName(value)
-          onDone()
-        }}
-      >
-        <div className="logo">👋</div>
-        <h1>{editing ? 'Change your name' : "Who's singing?"}</h1>
-        <p>Your name appears next to the songs you add.</p>
-        <input
-          className="input"
-          autoFocus
-          required
-          maxLength={30}
-          placeholder="Your name"
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-        />
-        <button className="btn primary big" disabled={!value.trim()}>{editing ? 'Save' : 'Continue'}</button>
-        {editing && <button type="button" className="btn ghost" onClick={onDone}>Cancel</button>}
-      </form>
-    </main>
-  )
-}
-
-function QueueRow({ item, first, last, manage, onMove, onRemove }: {
-  item: QueueItem
-  first: boolean
-  last: boolean
-  manage: boolean
-  onMove: (delta: -1 | 1) => void
-  onRemove: () => void
-}) {
-  return (
-    <li className="row">
-      <img src={item.thumb ?? thumbFor(item.videoId)} alt="" />
-      <div className="row-text">
-        <div className="row-title">{item.title}</div>
-        <div className="row-sub">{item.singer}</div>
-      </div>
-      {manage && (
-        <div className="row-actions">
-          <button className="btn icon" disabled={first} onClick={() => onMove(-1)} aria-label="Move up">↑</button>
-          <button className="btn icon" disabled={last} onClick={() => onMove(1)} aria-label="Move down">↓</button>
-          <button className="btn icon danger" onClick={onRemove} aria-label="Remove">✕</button>
-        </div>
-      )}
-    </li>
-  )
-}
-
-function SearchPanel({ onAdd, disabled }: { onAdd: (r: SearchResult) => void; disabled?: boolean }) {
-  const [q, setQ] = useState('')
-  const [results, setResults] = useState<SearchResult[]>([])
-  const [status, setStatus] = useState<'loading' | 'error' | 'done'>('done')
-  const [added, setAdded] = useState<Set<string>>(new Set())
-
-  useEffect(() => {
-    const query = q.trim()
-    if (query.length < 2) return
-    const ctrl = new AbortController()
-    const timer = window.setTimeout(() => {
-      setStatus('loading')
-      searchKaraoke(query, { signal: ctrl.signal })
-        .then((r) => { setResults(r); setStatus('done') })
-        .catch((e) => { if (!ctrl.signal.aborted) { console.error(e); setStatus('error') } })
-    }, 400)
-    return () => { window.clearTimeout(timer); ctrl.abort() }
-  }, [q])
-
-  const idle = q.trim().length < 2
-  const blocked = useBlocked()
-  const shown = idle ? [] : results
-
-  const probe = async (r: SearchResult) => {
-    if (blocked.includes(r.videoId)) return false
-    setChecking((s) => new Set(s).add(r.videoId))
-    const ok = await probeEmbeddable(r.videoId)
-    setChecking((s) => { const n = new Set(s); n.delete(r.videoId); return n })
-    return ok
-  }
-
-  const [checking, setChecking] = useState<Set<string>>(new Set())
-  const [pending, setPending] = useState<Set<string>>(new Set())
-
-  const add = async (r: SearchResult) => {
-    setPending((s) => new Set(s).add(r.videoId))
-    const ok = await probe(r)
-    setPending((s) => { const n = new Set(s); n.delete(r.videoId); return n })
-    if (!ok) return
-    onAdd(r)
-    setAdded((s) => new Set(s).add(r.videoId))
-    window.setTimeout(() => setAdded((s) => { const n = new Set(s); n.delete(r.videoId); return n }), 2000)
-  }
-
-  return (
-    <>
-      <div className="fields">
-        <input className="input" type="search" placeholder="Search karaoke songs…" value={q} onChange={(e) => setQ(e.target.value)} />
-      </div>
-      {idle && <p className="muted">Type a song or artist.</p>}
-      {!idle && status === 'loading' && <p className="muted">Searching…</p>}
-      {!idle && status === 'error' && <p className="muted error">Search is unavailable right now. Try again in a moment.</p>}
-      {!idle && status === 'done' && results.length === 0 && <p className="muted">No results.</p>}
-      <ul className="list">
-        {shown.map((r) => {
-          const isBlocked = blocked.includes(r.videoId)
-          const isChecking = checking.has(r.videoId)
-          return (
-          <li className={`row${isBlocked ? ' blocked' : ''}`} key={r.videoId} onPointerEnter={() => void probe(r)}>
-            <img src={r.thumb} alt="" />
-            <div className="row-text">
-              <div className="row-title">{r.title}</div>
-              <div className="row-sub">
-                {isBlocked ? 'Can’t be embedded' : isChecking ? 'Checking…' : [r.channel, formatDuration(r.durationSec)].filter(Boolean).join(' · ')}
-              </div>
-            </div>
-            <button className="btn primary icon" aria-label={isBlocked ? 'Unavailable' : 'Add'} disabled={disabled || isBlocked || added.has(r.videoId) || pending.has(r.videoId)} onClick={() => void add(r)}>
-              {isBlocked ? '⊘' : added.has(r.videoId) ? '✓' : isChecking ? <span className="spinner" /> : '+'}
-            </button>
-          </li>
-          )
-        })}
-      </ul>
-    </>
-  )
-}
