@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import QRCode from 'qrcode'
 import { leaveSession, joinSession, sendCommand, useGuest } from './guest'
 import { startHostLink } from './host'
+import { useHostLock } from './lock'
 import { Player } from './Player'
 import { getClientId, setName, useName } from './profile'
 import { thumbFor } from './protocol'
@@ -42,10 +43,12 @@ export default function App() {
   }
 
   const hostRoom = session?.roomCode
+  const hostLock = useHostLock(hostRoom)
+  const hosting = hostLock.status === 'held'
   useEffect(() => {
-    if (!hostRoom) return
+    if (!hostRoom || !hosting) return
     return startHostLink(hostRoom)
-  }, [hostRoom])
+  }, [hostRoom, hosting])
 
   // Opening a shared link (?join=CODE) joins that room
   useEffect(() => {
@@ -57,6 +60,12 @@ export default function App() {
 
   if (!session && !guest) {
     return <Home onStart={() => { startSession(); setResumed(true) }} />
+  }
+
+  if (session && hostLock.status !== 'held') {
+    // Never mount the player until we know no other tab is already hosting
+    if (hostLock.status === 'blocked') return <HostElsewhere roomCode={session.roomCode} onTakeOver={hostLock.takeOver} />
+    return null
   }
 
   if (!name || editingName) {
@@ -254,6 +263,19 @@ function Home({ onStart }: { onStart: () => void }) {
           />
           <button className="btn" disabled={code.trim().length < 3}>Join</button>
         </form>
+      </div>
+    </main>
+  )
+}
+
+function HostElsewhere({ roomCode, onTakeOver }: { roomCode: string; onTakeOver: () => void }) {
+  return (
+    <main className="home">
+      <div className="home-card">
+        <div className="logo">🪟</div>
+        <h1>Room {roomCode}</h1>
+        <p>This session is already open in another tab.</p>
+        <button className="btn primary big" onClick={onTakeOver}>Use this tab instead</button>
       </div>
     </main>
   )
