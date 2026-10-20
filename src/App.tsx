@@ -159,7 +159,7 @@ export default function App() {
         <section className={`panel stage${isHost ? ' host' : ''}`}>
           <div className="screen">
             {isHost && session.nowPlaying && resumed ? (
-              <Player item={session.nowPlaying.item} startSeconds={session.nowPlaying.positionSec} />
+              <Player key={session.nowPlaying.item.id} item={session.nowPlaying.item} startSeconds={session.nowPlaying.positionSec} />
             ) : isHost && session.nowPlaying ? (
               <button className="btn primary big" onClick={() => setResumed(true)}>
                 ▶ Resume session
