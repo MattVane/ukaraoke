@@ -27,7 +27,13 @@ export default function App() {
   const [tab, setTab] = useState<Tab>('stage')
   // Autoplay needs a user gesture, so a restored session waits for a click
   const [resumed, setResumed] = useState(false)
-  const [sideOpen, setSideOpen] = useState(true)
+  const [sideOpen, setSideOpen] = useState(() => localStorage.getItem('karaoke.sideOpen') !== 'false')
+  const toggleSide = () => {
+    setSideOpen((o) => {
+      localStorage.setItem('karaoke.sideOpen', String(!o))
+      return !o
+    })
+  }
 
   if (!session) {
     return (
@@ -62,7 +68,7 @@ export default function App() {
         </div>
         <button
           className="btn icon side-toggle"
-          onClick={() => setSideOpen((o) => !o)}
+          onClick={toggleSide}
           aria-label={sideOpen ? 'Hide side panel' : 'Show side panel'}
           aria-expanded={sideOpen}
           title={sideOpen ? 'Hide side panel' : 'Show side panel'}
