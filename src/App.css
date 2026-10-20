@@ -126,6 +126,10 @@ h2 { font-size: 1.1rem; margin-bottom: 0.8rem; display: flex; align-items: cente
 .row-title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .row-sub { color: var(--muted); font-size: 0.85rem; }
 .row-actions { display: flex; gap: 0.1rem; }
+.row.blocked img, .row.blocked .row-title { opacity: 0.4; }
+.row.blocked .row-sub { color: var(--danger); }
+.spinner { width: 1rem; height: 1rem; border: 2px solid rgba(0,0,0,.25); border-top-color: #000; border-radius: 50%; animation: spin 0.7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 
 /* Tab bar (mobile) */
 .tabbar { display: flex; background: var(--surface); border-top: 1px solid #000; }

@@ -437,16 +437,20 @@ function SearchPanel({ onAdd, disabled }: { onAdd: (r: SearchResult) => void; di
 
   const idle = q.trim().length < 2
   const blocked = useBlocked()
-  const visible = results.filter((r) => !blocked.includes(r.videoId))
-  const shown = idle ? [] : visible
+  const shown = idle ? [] : results
+
+  const probe = async (r: SearchResult) => {
+    if (blocked.includes(r.videoId)) return false
+    setChecking((s) => new Set(s).add(r.videoId))
+    const ok = await probeEmbeddable(r.videoId)
+    setChecking((s) => { const n = new Set(s); n.delete(r.videoId); return n })
+    return ok
+  }
 
   const [checking, setChecking] = useState<Set<string>>(new Set())
 
   const add = async (r: SearchResult) => {
-    setChecking((s) => new Set(s).add(r.videoId))
-    const ok = await probeEmbeddable(r.videoId)
-    setChecking((s) => { const n = new Set(s); n.delete(r.videoId); return n })
-    if (!ok) return
+    if (!(await probe(r))) return
     onAdd(r)
     setAdded((s) => new Set(s).add(r.videoId))
     window.setTimeout(() => setAdded((s) => { const n = new Set(s); n.delete(r.videoId); return n }), 2000)
@@ -460,20 +464,26 @@ function SearchPanel({ onAdd, disabled }: { onAdd: (r: SearchResult) => void; di
       {idle && <p className="muted">Type a song or artist.</p>}
       {!idle && status === 'loading' && <p className="muted">Searching…</p>}
       {!idle && status === 'error' && <p className="muted error">Search is unavailable right now. Try again in a moment.</p>}
-      {!idle && status === 'done' && visible.length === 0 && <p className="muted">No results.</p>}
+      {!idle && status === 'done' && results.length === 0 && <p className="muted">No results.</p>}
       <ul className="list">
-        {shown.map((r) => (
-          <li className="row" key={r.videoId} onPointerEnter={() => void probeEmbeddable(r.videoId)}>
+        {shown.map((r) => {
+          const isBlocked = blocked.includes(r.videoId)
+          const isChecking = checking.has(r.videoId)
+          return (
+          <li className={`row${isBlocked ? ' blocked' : ''}`} key={r.videoId} onPointerEnter={() => void probe(r)}>
             <img src={r.thumb} alt="" />
             <div className="row-text">
               <div className="row-title">{r.title}</div>
-              <div className="row-sub">{[r.channel, formatDuration(r.durationSec)].filter(Boolean).join(' · ')}</div>
+              <div className="row-sub">
+                {isBlocked ? 'Can’t be played here — embedding disabled' : isChecking ? 'Checking…' : [r.channel, formatDuration(r.durationSec)].filter(Boolean).join(' · ')}
+              </div>
             </div>
-            <button className="btn primary icon" aria-label="Add" disabled={disabled || added.has(r.videoId) || checking.has(r.videoId)} onClick={() => void add(r)}>
-              {added.has(r.videoId) ? '✓' : checking.has(r.videoId) ? '…' : '+'}
+            <button className="btn primary icon" aria-label={isBlocked ? 'Unavailable' : 'Add'} disabled={disabled || isBlocked || added.has(r.videoId) || isChecking} onClick={() => void add(r)}>
+              {isBlocked ? '⊘' : added.has(r.videoId) ? '✓' : isChecking ? <span className="spinner" /> : '+'}
             </button>
           </li>
-        ))}
+          )
+        })}
       </ul>
     </>
   )
