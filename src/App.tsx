@@ -469,8 +469,8 @@ function SearchPanel({ onAdd, disabled }: { onAdd: (r: SearchResult) => void; di
               <div className="row-title">{r.title}</div>
               <div className="row-sub">{[r.channel, formatDuration(r.durationSec)].filter(Boolean).join(' · ')}</div>
             </div>
-            <button className="btn primary small" disabled={disabled || added.has(r.videoId) || checking.has(r.videoId)} onClick={() => void add(r)}>
-              {added.has(r.videoId) ? '✓ Added' : checking.has(r.videoId) ? '…' : '+ Add'}
+            <button className="btn primary small" aria-label="Add" disabled={disabled || added.has(r.videoId) || checking.has(r.videoId)} onClick={() => void add(r)}>
+              {added.has(r.videoId) ? '✓' : checking.has(r.videoId) ? '…' : '+'}
             </button>
           </li>
         ))}
