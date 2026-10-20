@@ -448,9 +448,13 @@ function SearchPanel({ onAdd, disabled }: { onAdd: (r: SearchResult) => void; di
   }
 
   const [checking, setChecking] = useState<Set<string>>(new Set())
+  const [pending, setPending] = useState<Set<string>>(new Set())
 
   const add = async (r: SearchResult) => {
-    if (!(await probe(r))) return
+    setPending((s) => new Set(s).add(r.videoId))
+    const ok = await probe(r)
+    setPending((s) => { const n = new Set(s); n.delete(r.videoId); return n })
+    if (!ok) return
     onAdd(r)
     setAdded((s) => new Set(s).add(r.videoId))
     window.setTimeout(() => setAdded((s) => { const n = new Set(s); n.delete(r.videoId); return n }), 2000)
@@ -478,7 +482,7 @@ function SearchPanel({ onAdd, disabled }: { onAdd: (r: SearchResult) => void; di
                 {isBlocked ? 'Can’t be played here — embedding disabled' : isChecking ? 'Checking…' : [r.channel, formatDuration(r.durationSec)].filter(Boolean).join(' · ')}
               </div>
             </div>
-            <button className="btn primary icon" aria-label={isBlocked ? 'Unavailable' : 'Add'} disabled={disabled || isBlocked || added.has(r.videoId) || isChecking} onClick={() => void add(r)}>
+            <button className="btn primary icon" aria-label={isBlocked ? 'Unavailable' : 'Add'} disabled={disabled || isBlocked || added.has(r.videoId) || pending.has(r.videoId)} onClick={() => void add(r)}>
               {isBlocked ? '⊘' : added.has(r.videoId) ? '✓' : isChecking ? <span className="spinner" /> : '+'}
             </button>
           </li>
