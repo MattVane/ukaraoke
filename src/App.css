@@ -71,6 +71,7 @@ h2 { font-size: 1.1rem; margin-bottom: 0.8rem; display: flex; align-items: cente
 .qr { width: 200px; height: 200px; border-radius: 8px; background: #fff; }
 .qr.small { width: 96px; height: 96px; flex: none; }
 .joincard { display: flex; align-items: center; gap: 1rem; margin-top: 1rem; padding: 0.8rem; background: var(--elevated); border-radius: 8px; }
+.joincard-text { flex: 1; min-width: 0; }
 .joincard-title { font-weight: 700; }
 .joincard-url { color: var(--muted); font-size: 0.9rem; word-break: break-all; margin: 0.2rem 0; }
 .joincard-code { color: var(--muted); font-size: 0.85rem; }

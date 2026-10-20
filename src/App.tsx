@@ -259,10 +259,25 @@ function useQr(url: string, width: number) {
   return qr
 }
 
+function useCopy(text: string) {
+  const [copied, setCopied] = useState(false)
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 1500)
+    } catch {
+      // Clipboard needs a secure context; the link is shown for manual copying
+    }
+  }
+  return { copied, copy }
+}
+
 // Always-on invite shown under the player so nobody has to open a dialog mid-song
 function JoinCard({ roomCode }: { roomCode: string }) {
   const url = joinUrl(roomCode)
   const qr = useQr(url, 160)
+  const { copied, copy } = useCopy(url)
   return (
     <div className="joincard">
       {qr && <img className="qr small" src={qr} alt={`QR code to join room ${roomCode}`} />}
@@ -271,6 +286,9 @@ function JoinCard({ roomCode }: { roomCode: string }) {
         <div className="joincard-url">{url.replace(/^https?:\/\//, '')}</div>
         <div className="joincard-code">Room <strong>{roomCode}</strong></div>
       </div>
+      <button className="btn icon" onClick={copy} aria-label="Copy join link" title="Copy join link">
+        {copied ? '✓' : '⧉'}
+      </button>
     </div>
   )
 }
@@ -278,16 +296,7 @@ function JoinCard({ roomCode }: { roomCode: string }) {
 function ShareDialog({ roomCode, onClose }: { roomCode: string; onClose: () => void }) {
   const url = joinUrl(roomCode)
   const qr = useQr(url, 240)
-  const [copied, setCopied] = useState(false)
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(url)
-      setCopied(true)
-      window.setTimeout(() => setCopied(false), 1500)
-    } catch {
-      // Clipboard needs a secure context; the link is shown for manual copying
-    }
-  }
+  const { copied, copy } = useCopy(url)
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
